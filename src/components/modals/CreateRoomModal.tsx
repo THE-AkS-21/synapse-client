@@ -24,9 +24,14 @@ export default function CreateRoomModal({ isOpen, onClose }: Props) {
         setIsLoading(true);
 
         try {
+            const token = localStorage.getItem('token');
             const res = await api.post('/api/v1/rooms', {
                 name: name.trim(),
                 type: 'PUBLIC'
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
             });
             setRooms([...rooms, res.data]);
             setName('');

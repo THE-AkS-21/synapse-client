@@ -16,7 +16,10 @@ api.interceptors.request.use(
     // In a Next.js client component, localStorage is available
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
-      if (token && config.headers) {
+      // if (token && config.headers) {
+      //   config.headers.Authorization = `Bearer ${token}`;
+      // }
+      if (token && token !== "undefined") {
         config.headers.Authorization = `Bearer ${token}`;
       }
     }

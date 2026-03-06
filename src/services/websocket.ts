@@ -12,30 +12,36 @@ class WebSocketService {
     private heartbeatInterval: NodeJS.Timeout | null = null;
 
     connect() {
-        if (this.client && this.client.connected) return;
+        if (this.client && (this.client.connected || this.client.active)) {
+            return;
+        }
 
-        // Get token dynamically
-        const token = localStorage.getItem('token') || '';
+        const token =
+            typeof window !== "undefined"
+                ? localStorage.getItem("token")
+                : null;
 
         this.client = new Client({
-            // Configure SockJS as the fallback transport if native WebSockets are missing
             webSocketFactory: () => new SockJS(WEBSOCKET_URL),
-            connectHeaders: {
-                Authorization: `Bearer ${token}`
-            },
+
+            connectHeaders: token
+                ? { Authorization: `Bearer ${token}` }
+                : {},
+
             debug: (str) => {
-                if (process.env.NODE_ENV !== 'production') {
-                    console.log('[STOMP]', str);
+                if (process.env.NODE_ENV !== "production") {
+                    console.log("[STOMP]", str);
                 }
             },
+
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
         });
 
         this.client.onConnect = () => {
-            console.log('Connected to WebSocket server');
-            // If there is an active room, rejoin and subscribe
+            console.log("Connected to WebSocket server");
+
             const state = useChatStore.getState();
             if (state.activeRoomId) {
                 this.joinRoom(state.activeRoomId);
@@ -43,8 +49,16 @@ class WebSocketService {
         };
 
         this.client.onStompError = (frame) => {
-            console.error('Broker reported error: ' + frame.headers['message']);
-            console.error('Additional details: ' + frame.body);
+            console.error("Broker error:", frame.headers["message"]);
+            console.error(frame.body);
+        };
+
+        this.client.onWebSocketError = (event) => {
+            console.error("WebSocket error:", event);
+        };
+
+        this.client.onDisconnect = () => {
+            console.log("WebSocket disconnected");
         };
 
         this.client.activate();

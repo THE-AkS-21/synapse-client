@@ -27,8 +27,16 @@ export default function LoginPage() {
             // Backend expects /api/auth/login
             const res = await api.post('/api/auth/login', { email, password });
 
-            const { token, user } = res.data;
-            setAuth(user, token);
+            const { token, username } = res.data;
+
+            setAuth(
+                {
+                    id: username,
+                    username,
+                    email,
+                },
+                token
+            );
 
             router.push('/dashboard');
         } catch (err: unknown) {
