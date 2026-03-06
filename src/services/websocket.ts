@@ -15,7 +15,7 @@ class WebSocketService {
         if (this.client && this.client.connected) return;
 
         // Get token dynamically
-        const token = localStorage.getItem('synapse_jwt') || '';
+        const token = localStorage.getItem('token') || '';
 
         this.client = new Client({
             // Configure SockJS as the fallback transport if native WebSockets are missing

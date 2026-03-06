@@ -15,7 +15,7 @@ api.interceptors.request.use(
   (config) => {
     // In a Next.js client component, localStorage is available
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('synapse_jwt');
+      const token = localStorage.getItem('token');
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }

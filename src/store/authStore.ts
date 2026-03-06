@@ -24,13 +24,13 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             setAuth: (user, token) => {
                 if (typeof window !== 'undefined') {
-                    localStorage.setItem('synapse_jwt', token);
+                    localStorage.setItem('token', token);
                 }
                 set({ user, token, isAuthenticated: true });
             },
             logout: () => {
                 if (typeof window !== 'undefined') {
-                    localStorage.removeItem('synapse_jwt');
+                    localStorage.removeItem('token');
                 }
                 set({ user: null, token: null, isAuthenticated: false });
             },
