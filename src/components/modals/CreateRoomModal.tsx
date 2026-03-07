@@ -50,11 +50,11 @@ export default function CreateRoomModal({ isOpen, onClose }: Props) {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full max-w-md bg-[#121214] border border-white/10 rounded-2xl shadow-2xl overflow-hidden glass"
+                        className="w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden glass transition-colors duration-300"
                     >
-                        <div className="flex items-center justify-between p-5 border-b border-white/10 bg-black/20">
-                            <h2 className="text-lg font-semibold text-white">Create a New Room</h2>
-                            <button onClick={onClose} className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-white/10 transition-colors">
+                        <div className="flex items-center justify-between p-5 border-b border-border bg-surface-hover">
+                            <h2 className="text-lg font-semibold text-foreground">Create a New Room</h2>
+                            <button onClick={onClose} className="p-1 rounded-md text-zinc-500 hover:text-foreground hover:bg-surface-elevated transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
