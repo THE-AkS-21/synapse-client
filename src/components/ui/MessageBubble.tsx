@@ -31,7 +31,7 @@ export const MessageBubble = memo(({ msg, isMe, isConsecutive }: MessageBubblePr
                 <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                     {!isConsecutive && (
                         <div className="flex items-baseline gap-2 mb-1 px-1">
-                            <span className="text-sm font-semibold text-zinc-300">
+                            <span className="text-sm font-semibold text-foreground">
                                 {isMe ? 'You' : msg.senderName}
                             </span>
                             {msg.timestamp && (
@@ -44,8 +44,8 @@ export const MessageBubble = memo(({ msg, isMe, isConsecutive }: MessageBubblePr
 
                     <div
                         className={`px-4 py-2.5 rounded-2xl ${isMe
-                            ? 'bg-indigo-600 text-white rounded-br-sm shadow-md shadow-indigo-900/20'
-                            : 'bg-zinc-800/80 text-zinc-200 border border-white/5 rounded-bl-sm backdrop-blur-md'
+                            ? 'bg-brand text-white rounded-br-sm shadow-md shadow-brand/20'
+                            : 'bg-surface-elevated text-foreground border border-border rounded-bl-sm backdrop-blur-md'
                             }`}
                     >
                         <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>

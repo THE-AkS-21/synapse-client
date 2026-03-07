@@ -40,9 +40,7 @@ export const connectWebSocket = (roomId: string, token: string, onMessageReceive
         webSocketFactory: () => new SockJS(WEBSOCKET_URL),
         connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
         debug: (str) => {
-            if (process.env.NODE_ENV !== "production") {
-                console.log("[STOMP]", str);
-            }
+            // You can implement custom STOMP frame logging here if needed in DEV mode.
         },
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
@@ -50,7 +48,7 @@ export const connectWebSocket = (roomId: string, token: string, onMessageReceive
     });
 
     stompClient.onConnect = () => {
-        console.log("Connected to WebSocket server");
+        console.debug("[WebSocket] Connected successfully");
         changeRoomSubscription(roomId, onMessageReceived, onPresenceReceived);
         startHeartbeat();
     };
@@ -64,7 +62,7 @@ export const connectWebSocket = (roomId: string, token: string, onMessageReceive
     };
 
     stompClient.onDisconnect = () => {
-        console.log("WebSocket disconnected");
+        console.debug("[WebSocket] Disconnected");
         stopHeartbeat();
     };
 
