@@ -1,5 +1,6 @@
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { Message, UserPresence } from '../store/chatStore';
 
 const WEBSOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8080/ws';
 
@@ -25,7 +26,11 @@ const stopHeartbeat = () => {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
 };
 
-export const connectWebSocket = (roomId: string, token: string, onMessageReceived: Function, onPresenceReceived: Function) => {
+type MessageCallback = (msg: Message) => void;
+type PresenceEvent = { onlineUsers: string[], typingUsers: string[] };
+type PresenceCallback = (presence: PresenceEvent) => void;
+
+export const connectWebSocket = (roomId: string, token: string, onMessageReceived: MessageCallback, onPresenceReceived: PresenceCallback) => {
     if (stompClient && stompClient.connected) {
         changeRoomSubscription(roomId, onMessageReceived, onPresenceReceived);
         return;
@@ -66,7 +71,7 @@ export const connectWebSocket = (roomId: string, token: string, onMessageReceive
     stompClient.activate();
 };
 
-const changeRoomSubscription = (newRoomId: string, onMessageReceived: Function, onPresenceReceived: Function) => {
+const changeRoomSubscription = (newRoomId: string, onMessageReceived: MessageCallback, onPresenceReceived: PresenceCallback) => {
     if (currentRoomId && currentRoomId !== newRoomId && stompClient && stompClient.connected) {
         stompClient.publish({
             destination: `/app/presence/leave/${currentRoomId}`,

@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { api } from '@/services/api';
-import { Plus, Hash, LogOut } from 'lucide-react';
+import { Plus, LogOut } from 'lucide-react';
 import CreateRoomModal from '@/components/modals/CreateRoomModal';
+import { Avatar } from '@/components/ui/Avatar';
+import { RoomListItem } from '@/components/ui/RoomListItem';
 
 export default function LeftSidebar() {
     const user = useAuthStore(state => state.user);
@@ -19,18 +21,26 @@ export default function LeftSidebar() {
     const [isLoadingRooms, setIsLoadingRooms] = useState(true);
 
     useEffect(() => {
+        let active = true;
         if (user?.username) {
-            setIsLoadingRooms(true);
-            api.get(`/api/v1/rooms/user`)
-                .then(res => {
-                    setRooms(res.data);
-                    setIsLoadingRooms(false);
-                })
-                .catch(err => {
-                    console.error('Failed to load rooms:', err);
-                    setIsLoadingRooms(false);
-                });
+            // Safe initialization pattern 
+            const fetchRoomsInit = async () => {
+                try {
+                    const res = await api.get(`/api/v1/rooms/user`);
+                    if (active) {
+                        setRooms(res.data);
+                        setIsLoadingRooms(false);
+                    }
+                } catch (err) {
+                    if (active) {
+                        console.error('Failed to load rooms:', err);
+                        setIsLoadingRooms(false);
+                    }
+                }
+            };
+            fetchRoomsInit();
         }
+        return () => { active = false; };
     }, [user, setRooms]);
 
     return (
@@ -66,17 +76,13 @@ export default function LeftSidebar() {
                         </div>
                     ) : (
                         rooms.map((room) => (
-                            <button
+                            <RoomListItem
                                 key={room.id}
-                                onClick={() => setActiveRoom(room.id)}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${activeRoomId === room.id
-                                    ? 'bg-indigo-500/10 text-indigo-400 font-medium'
-                                    : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'
-                                    }`}
-                            >
-                                <Hash size={18} className={activeRoomId === room.id ? 'text-indigo-500' : 'text-zinc-500'} />
-                                <span className="truncate">{room.name}</span>
-                            </button>
+                                id={room.id}
+                                name={room.name}
+                                isActive={activeRoomId === room.id}
+                                onClick={setActiveRoom}
+                            />
                         ))
                     )}
                 </div>
@@ -84,9 +90,7 @@ export default function LeftSidebar() {
                 {/* User Footer */}
                 <div className="p-4 border-t border-white/5 bg-black/20">
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
-                            {user?.username?.charAt(0).toUpperCase() || 'U'}
-                        </div>
+                        <Avatar name={user?.username || 'U'} />
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-white truncate">{user?.username || 'User'}</p>
                             <p className="text-xs text-zinc-500 truncate">Online</p>

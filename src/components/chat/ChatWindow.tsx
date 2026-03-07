@@ -6,6 +6,7 @@ import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import ChatHistory from './ChatHistory';
 import ChatInput from './ChatInput';
 import { Hash, Users } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 
 export default function ChatWindow() {
     const activeRoomId = useChatStore(state => state.activeRoomId);
@@ -39,9 +40,7 @@ export default function ChatWindow() {
             {/* Room Header */}
             <header className="h-16 flex-shrink-0 flex items-center justify-between px-6 border-b border-white/5 bg-black/20 backdrop-blur-md z-10">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
-                        <Hash size={20} />
-                    </div>
+                    <Avatar name={room?.name || 'R'} size="sm" />
                     <div>
                         <h2 className="font-semibold text-white leading-tight">{room?.name || 'Loading...'}</h2>
                         <div className="flex items-center gap-2 mt-0.5 text-xs text-zinc-500">

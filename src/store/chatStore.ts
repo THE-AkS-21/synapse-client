@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 
 export interface Message {
-    id: string;
+    id: string; // Will store messageId (from DB) or id (from WebSocket)
     roomId: string;
-    senderId: string;
-    senderName: string;
+    senderUsername: string; // Consistent user identifier
+    senderName: string; // The display name
     content: string;
-    timestamp: string;
+    timestamp: number; // Backend sends a long (ms)
 }
 
 export interface UserPresence {

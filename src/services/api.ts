@@ -22,6 +22,9 @@ api.interceptors.request.use((config) => {
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    console.log("Axios request sending auth token:", token.substring(0, 15) + "...");
+  } else {
+    console.warn("Axios request without auth token!");
   }
 
   return config;

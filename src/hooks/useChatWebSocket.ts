@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { connectWebSocket, disconnectWebSocket } from '../services/websocket';
-import { useChatStore } from '../store/chatStore';
+import { useChatStore, Message, UserPresence } from '../store/chatStore';
 
 export const useChatWebSocket = (roomId: string, token: string | null) => {
     const appendMessage = useChatStore((state) => state.appendMessage);
@@ -12,10 +12,23 @@ export const useChatWebSocket = (roomId: string, token: string | null) => {
 
         connectWebSocket(roomId, token,
             (newMessage: any) => {
-                appendMessage(roomId, newMessage);
+                const mappedMessage: Message = {
+                    id: newMessage.id,
+                    roomId: newMessage.roomId,
+                    senderUsername: newMessage.from,
+                    senderName: newMessage.from,
+                    content: newMessage.content,
+                    timestamp: newMessage.timestamp,
+                };
+                appendMessage(roomId, mappedMessage);
             },
-            (presenceEvent: any) => {
-                setOnlineUsers(roomId, presenceEvent.onlineUsers || []);
+            (presenceEvent: { onlineUsers: string[], typingUsers: string[] }) => {
+                const mappedOnlineUsers = (presenceEvent.onlineUsers || []).map((u: any) => {
+                    // Map string usernames from backend to UserPresence objects
+                    const username = typeof u === 'string' ? u : (u.username || u.id || 'Unknown');
+                    return { id: username, username };
+                });
+                setOnlineUsers(roomId, mappedOnlineUsers);
                 setTypingUsers(roomId, presenceEvent.typingUsers || []);
             }
         );
