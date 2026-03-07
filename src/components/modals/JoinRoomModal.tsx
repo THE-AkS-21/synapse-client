@@ -84,14 +84,14 @@ export default function JoinRoomModal({ isOpen, onClose }: Props) {
                                 </label>
                                 <Input
                                     autoFocus
-                                    placeholder="Paste Room ID here..."
+                                    placeholder="e.g., ABCD-EFGH-IJKL"
                                     value={roomId}
                                     onChange={(e) => setRoomId(e.target.value)}
                                     icon={<Search size={18} />}
                                     required
                                 />
                                 <p className="text-xs text-zinc-500">
-                                    A Room ID looks like a UUID (e.g., 550e8400-e29b-41d4-a716-446655440000).
+                                    A Room ID looks like XXXX-YYYY-ZZZZ (14 characters).
                                 </p>
                             </div>
 
