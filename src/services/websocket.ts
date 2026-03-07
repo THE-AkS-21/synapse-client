@@ -12,14 +12,16 @@ let heartbeatInterval: NodeJS.Timeout | null = null;
 
 const startHeartbeat = () => {
     stopHeartbeat();
-    heartbeatInterval = setInterval(() => {
+    const sendBeat = () => {
         if (stompClient && stompClient.connected) {
             stompClient.publish({
                 destination: '/app/presence/heartbeat',
                 body: JSON.stringify({}),
             });
         }
-    }, 25000);
+    };
+    sendBeat(); // Fire instantly to register presence without delay
+    heartbeatInterval = setInterval(sendBeat, 25000);
 };
 
 const stopHeartbeat = () => {

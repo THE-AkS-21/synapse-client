@@ -6,6 +6,8 @@ import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { Virtuoso } from 'react-virtuoso';
 import { MessageBubble } from '@/components/ui/MessageBubble';
+import Image from 'next/image';
+import { motion } from 'framer-motion';
 
 export default function ChatHistory({ roomId }: { roomId: string }) {
     const messages = useChatStore((state) => state.messages);
@@ -52,8 +54,15 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
 
     if (isLoading && roomMessages.length === 0) {
         return (
-            <div className="flex-1 flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex-1 flex flex-col items-center justify-center space-y-4 bg-background transition-colors duration-300">
+                <motion.div
+                    animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.6, 1, 0.6] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                    className="w-16 h-16 relative bg-black/10 p-3 rounded-2xl border border-white/5 drop-shadow-lg"
+                >
+                    <Image src="/synapse_logo.png" alt="Loading" fill className="object-contain p-1.5" priority />
+                </motion.div>
+                <p className="text-sm text-zinc-500 font-medium tracking-wide animate-pulse">Syncing nodes...</p>
             </div>
         );
     }
