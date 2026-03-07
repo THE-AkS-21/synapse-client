@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { X, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 interface Props {
     isOpen: boolean;
@@ -34,11 +35,12 @@ export default function CreateRoomModal({ isOpen, onClose }: Props) {
                 }
             });
             setRooms([...rooms, res.data]);
+            toast.success("Room created successfully!");
             setName('');
             onClose();
         } catch (err) {
             console.error('Failed to create room:', err);
-            // In a real app we would use a toast here
+            toast.error("Failed to create room. Try again.");
         } finally {
             setIsLoading(false);
         }

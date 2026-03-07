@@ -1,22 +1,20 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '@/services/api';
-import { wsService } from '@/services/websocket';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
-import { format } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
+import { format, isToday } from 'date-fns';
+import { Virtuoso } from 'react-virtuoso';
 
 export default function ChatHistory({ roomId }: { roomId: string }) {
-    const { messages, setMessages } = useChatStore();
-    const { user } = useAuthStore();
+    const messages = useChatStore((state) => state.messages);
+    const setMessages = useChatStore((state) => state.setMessages);
+    const user = useAuthStore((state) => state.user);
     const [isLoading, setIsLoading] = useState(false);
-    const bottomRef = useRef<HTMLDivElement>(null);
 
     const roomMessages = messages[roomId] || [];
 
-    // Initial fetch and WebSocket connect
     useEffect(() => {
         let active = true;
 
@@ -24,10 +22,9 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
             setIsLoading(true);
             try {
                 const res = await api.get(`/api/v1/messages/room/${roomId}?page=0&size=50`);
-                // Assuming API returns an array or an object with content array
                 const history = Array.isArray(res.data) ? res.data : res.data.content || [];
                 if (active) {
-                    setMessages(roomId, history.reverse()); // Oldest first
+                    setMessages(roomId, history.reverse());
                 }
             } catch (err) {
                 console.error('Failed to load history:', err);
@@ -40,24 +37,10 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
             fetchHistory();
         }
 
-        // Connect to WebSocket and join room
-        wsService.connect();
-        // Timeout added because if connect() is still establishing, joinRoom is handled in onConnect.
-        // If it's already connected, we just join immediately.
-        setTimeout(() => {
-            wsService.joinRoom(roomId);
-        }, 100);
-
         return () => {
             active = false;
-            wsService.leaveRoom(roomId);
         };
-    }, [roomId, setMessages, messages]); // Added messages to deps
-
-    useEffect(() => {
-        // Scroll to bottom on new messages
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [roomId, messages]); // use messages from store directly for dep
+    }, [roomId, setMessages, messages]);
 
     if (isLoading && roomMessages.length === 0) {
         return (
@@ -67,22 +50,25 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
         );
     }
 
-    return (
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 flex flex-col pt-20">
-            <div className="flex-1"></div> {/* Spacer to push messages down if few */}
+    const formatMessageTime = (timestamp: string | number) => {
+        if (!timestamp) return '';
+        const date = new Date(timestamp);
+        return isToday(date) ? format(date, 'h:mm a') : format(date, 'MMM d, h:mm a');
+    };
 
-            <AnimatePresence initial={false}>
-                {roomMessages.map((msg, index) => {
+    return (
+        <div className="flex-1 px-6 py-4 flex flex-col pt-20">
+            <Virtuoso
+                style={{ height: '100%', width: '100%' }}
+                data={roomMessages}
+                initialTopMostItemIndex={roomMessages.length > 0 ? roomMessages.length - 1 : 0}
+                followOutput="smooth"
+                itemContent={(index, msg) => {
                     const isMe = msg.senderId === user?.id;
                     const isConsecutive = index > 0 && roomMessages[index - 1].senderId === msg.senderId;
 
                     return (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            key={msg.id}
-                            className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-1' : 'mt-4'}`}
-                        >
+                        <div className={`flex w-full pb-4 ${isMe ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-1' : 'mt-4'}`}>
                             <div className={`flex max-w-[75%] gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
 
                                 {!isConsecutive && (
@@ -99,7 +85,7 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
                                             <span className="text-sm font-semibold text-zinc-300">{isMe ? 'You' : msg.senderName}</span>
                                             {msg.timestamp && (
                                                 <span className="text-xs text-zinc-500">
-                                                    {format(new Date(msg.timestamp), 'h:mm a')}
+                                                    {formatMessageTime(msg.timestamp)}
                                                 </span>
                                             )}
                                         </div>
@@ -109,15 +95,14 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
                                         ? 'bg-indigo-600 text-white rounded-br-sm shadow-md shadow-indigo-900/20'
                                         : 'bg-zinc-800/80 text-zinc-200 border border-white/5 rounded-bl-sm backdrop-blur-md'
                                         }`}>
-                                        <p className="text-sm leading-relaxed whitespace-pre-wrap word-break-words break-words">{msg.content}</p>
+                                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
                                     </div>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     );
-                })}
-            </AnimatePresence>
-            <div ref={bottomRef} className="h-1" />
+                }}
+            />
         </div>
     );
 }

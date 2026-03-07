@@ -1,31 +1,30 @@
-import axios from 'axios';
-
-// API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+import axios from "axios";
 
 export const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: process.env.NEXT_PUBLIC_API_URL
 });
 
-// Request Interceptor to add JWT
-api.interceptors.request.use(
-  (config) => {
-    // In a Next.js client component, localStorage is available
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      // if (token && config.headers) {
-      //   config.headers.Authorization = `Bearer ${token}`;
-      // }
-      if (token && token !== "undefined") {
-        config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use((config) => {
+  let token = localStorage.getItem("token");
+
+  // Fallback if token is stored inside zustand persist object
+  if (!token) {
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      try {
+        const parsed = JSON.parse(authStorage);
+        token = parsed?.state?.token;
+      } catch (e) {
+        console.error("Could not parse auth-storage", e);
       }
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
   }
-);
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+export default api;

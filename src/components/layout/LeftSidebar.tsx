@@ -8,15 +8,28 @@ import { Plus, Hash, LogOut } from 'lucide-react';
 import CreateRoomModal from '@/components/modals/CreateRoomModal';
 
 export default function LeftSidebar() {
-    const { user, logout } = useAuthStore();
-    const { rooms, setRooms, activeRoomId, setActiveRoom } = useChatStore();
+    const user = useAuthStore(state => state.user);
+    const logout = useAuthStore(state => state.logout);
+    const rooms = useChatStore(state => state.rooms);
+    const setRooms = useChatStore(state => state.setRooms);
+    const activeRoomId = useChatStore(state => state.activeRoomId);
+    const setActiveRoom = useChatStore(state => state.setActiveRoom);
+
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isLoadingRooms, setIsLoadingRooms] = useState(true);
 
     useEffect(() => {
-        if (user?.id) {
-            api.get(`/api/v1/rooms/user/${user.id}`)
-                .then(res => setRooms(res.data))
-                .catch(err => console.error('Failed to load rooms:', err));
+        if (user?.username) {
+            setIsLoadingRooms(true);
+            api.get(`/api/v1/rooms/user`)
+                .then(res => {
+                    setRooms(res.data);
+                    setIsLoadingRooms(false);
+                })
+                .catch(err => {
+                    console.error('Failed to load rooms:', err);
+                    setIsLoadingRooms(false);
+                });
         }
     }, [user, setRooms]);
 
@@ -42,19 +55,30 @@ export default function LeftSidebar() {
                         </button>
                     </div>
 
-                    {rooms.map((room) => (
-                        <button
-                            key={room.id}
-                            onClick={() => setActiveRoom(room.id)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${activeRoomId === room.id
-                                ? 'bg-indigo-500/10 text-indigo-400 font-medium'
-                                : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'
-                                }`}
-                        >
-                            <Hash size={18} className={activeRoomId === room.id ? 'text-indigo-500' : 'text-zinc-500'} />
-                            <span className="truncate">{room.name}</span>
-                        </button>
-                    ))}
+                    {isLoadingRooms ? (
+                        <div className="space-y-2">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="animate-pulse flex items-center gap-3 px-3 py-2.5 rounded-xl">
+                                    <div className="h-5 w-5 bg-zinc-800 rounded"></div>
+                                    <div className="h-4 bg-zinc-800 rounded w-3/4"></div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        rooms.map((room) => (
+                            <button
+                                key={room.id}
+                                onClick={() => setActiveRoom(room.id)}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${activeRoomId === room.id
+                                    ? 'bg-indigo-500/10 text-indigo-400 font-medium'
+                                    : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'
+                                    }`}
+                            >
+                                <Hash size={18} className={activeRoomId === room.id ? 'text-indigo-500' : 'text-zinc-500'} />
+                                <span className="truncate">{room.name}</span>
+                            </button>
+                        ))
+                    )}
                 </div>
 
                 {/* User Footer */}

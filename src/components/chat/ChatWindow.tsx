@@ -1,12 +1,20 @@
 'use client';
 
 import { useChatStore } from '@/store/chatStore';
+import { useAuthStore } from '@/store/authStore';
+import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import ChatHistory from './ChatHistory';
 import ChatInput from './ChatInput';
 import { Hash, Users } from 'lucide-react';
 
 export default function ChatWindow() {
-    const { activeRoomId, rooms, typingUsers, onlineUsers } = useChatStore();
+    const activeRoomId = useChatStore(state => state.activeRoomId);
+    const rooms = useChatStore(state => state.rooms);
+    const typingUsers = useChatStore(state => state.typingUsers);
+    const onlineUsers = useChatStore(state => state.onlineUsers);
+    const token = useAuthStore(state => state.token);
+
+    useChatWebSocket(activeRoomId || '', token);
 
     if (!activeRoomId) {
         return (

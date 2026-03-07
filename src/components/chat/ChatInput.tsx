@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { wsService } from '@/services/websocket';
 import { SendHorizontal } from 'lucide-react';
 
 export default function ChatInput({ roomId }: { roomId: string }) {
     const [text, setText] = useState('');
+
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -13,16 +15,32 @@ export default function ChatInput({ roomId }: { roomId: string }) {
 
         wsService.sendMessage(roomId, text.trim());
         setText('');
-        wsService.handleTypingBlur(roomId); // Stop typing instantly
+
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+        wsService.sendTyping(roomId, false); // Stop typing instantly
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setText(e.target.value);
-        wsService.handleTypingChange(roomId);
+
+        wsService.sendTyping(roomId, true);
+
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        typingTimeoutRef.current = setTimeout(() => {
+            wsService.sendTyping(roomId, false);
+        }, 2000);
     };
 
     const handleBlur = () => {
-        wsService.handleTypingBlur(roomId);
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+        wsService.sendTyping(roomId, false);
     };
 
     return (
