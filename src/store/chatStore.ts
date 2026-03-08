@@ -19,7 +19,7 @@ export interface Room {
     id: string;
     name: string;
     type?: 'PUBLIC' | 'PRIVATE' | 'DIRECT';
-    creatorUsername?: string;
+    creatorId?: number;
     description?: string;
     createdAt?: string;
     /** For DM rooms — the other participant's username */
