@@ -9,6 +9,8 @@ import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Mail, Lock, User as UserIcon, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
+
 
 const PROMISES = [
     'No account sharing — everyone gets their own secure space',
@@ -32,16 +34,31 @@ export default function RegisterPage() {
         setError('');
         try {
             const res = await api.post('/api/auth/register', { username, email, password });
-            const { token, user } = res.data;
-            setAuth(user, token);
-            router.push('/dashboard');
+            // Backend now returns token + user on successful registration (auto-login)
+            if (res.data?.token && res.data?.username) {
+                const { token, username: uname } = res.data;
+                setAuth({ username: uname, email }, token);
+                router.push('/dashboard');
+            } else {
+                router.push('/login?registered=1');
+            }
         } catch (err: unknown) {
-            const e = err as { response?: { data?: { message?: string } } };
-            setError(e.response?.data?.message || 'Registration failed. Please try again.');
+            const e = err as { response?: { data?: { message?: string } | string } };
+            const raw = e.response?.data;
+            const msg = typeof raw === 'object' && raw !== null
+                ? (raw as { message?: string }).message
+                : typeof raw === 'string' ? raw : null;
+            const errorMsg = msg || 'Registration failed. Please try again.';
+            setError(errorMsg);
+            // Show specific toast for conflicts (username/email taken)
+            if ((err as { response?: { status?: number } }).response?.status === 409) {
+                toast.error(`⚠️ ${errorMsg}`, { duration: 5000 });
+            }
         } finally {
             setIsLoading(false);
         }
     };
+
 
     const inputClass = "w-full bg-white/8 border border-white/12 text-white placeholder:text-zinc-500 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-cyan-500/60 focus:bg-white/10 focus:ring-2 focus:ring-cyan-500/20 transition-all";
 
