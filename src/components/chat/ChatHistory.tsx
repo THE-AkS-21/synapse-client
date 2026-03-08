@@ -9,6 +9,14 @@ import { MessageBubble } from '@/components/ui/MessageBubble';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 
+interface RawMessage {
+    messageId: string;
+    roomId: string;
+    senderUsername: string;
+    content: string;
+    timestamp: string;
+}
+
 export default function ChatHistory({ roomId }: { roomId: string }) {
     const messages = useChatStore((state) => state.messages);
     const setMessages = useChatStore((state) => state.setMessages);
@@ -26,7 +34,7 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
                 const res = await api.get(`/api/v1/messages/room/${roomId}?page=0&size=50`);
                 const history = Array.isArray(res.data) ? res.data : res.data.content || [];
                 if (active) {
-                    const mappedHistory = history.map((msg: any) => ({
+                    const mappedHistory = history.map((msg: RawMessage) => ({
                         id: msg.messageId, // Use UUID from DB
                         roomId: msg.roomId,
                         senderUsername: msg.senderUsername,
