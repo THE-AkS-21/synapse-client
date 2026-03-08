@@ -3,20 +3,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-
-  /* Brand/Accent Colors — Emerald Green */
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
   --color-brand-light: var(--brand-light);
-
-  /* Surface and UI Elements */
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
   --color-surface-elevated: var(--surface-elevated);
   --color-border: var(--border);
   --color-border-hover: var(--border-hover);
-
-  /* Fonts */
   --font-sans: var(--font-inter), sans-serif;
   --font-heading: var(--font-outfit), sans-serif;
 }
@@ -37,43 +31,36 @@
   --border: #cad7cc;
   --border-hover: #94b09a;
 
-  /* Sidebar-specific */
   --sidebar-bg: #e8f0ea;
   --sidebar-border: #cad7cc;
 }
 
-/* ─── Dark Mode ─── */
+/* ─── Dark Mode (neutral dark grey — no green tint) ─── */
 .dark {
-  --background: #0d1410;
+  --background: #1c1c1e;
   --foreground: #e8f5eb;
 
   --brand: #4ade80;
   --brand-hover: #22c55e;
   --brand-light: #14532d;
 
-  --surface: rgba(20, 32, 22, 0.55);
-  --surface-hover: rgba(30, 50, 33, 0.65);
-  --surface-elevated: #172118;
+  --surface: rgba(38, 38, 42, 0.75);
+  --surface-hover: rgba(52, 52, 58, 0.85);
+  --surface-elevated: #2c2c2e;
 
   --border: rgba(74, 222, 128, 0.10);
-  --border-hover: rgba(74, 222, 128, 0.22);
+  --border-hover: rgba(74, 222, 128, 0.24);
 
-  /* Sidebar-specific */
-  --sidebar-bg: #0f1a11;
-  --sidebar-border: rgba(74, 222, 128, 0.10);
+  --sidebar-bg: #161618;
+  --sidebar-border: rgba(74, 222, 128, 0.08);
 }
 
-/* ─── Glassmorphism utilities ─── */
+/* ─── Glassmorphism ─── */
 @utility glass {
   background: var(--surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border);
-}
-
-@utility glass-hover {
-  background: var(--surface-hover);
-  border: 1px solid var(--border-hover);
 }
 
 /* ─── Scrollbar ─── */
@@ -87,12 +74,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(22, 163, 74, 0.25);
+  background: rgba(74, 222, 128, 0.2);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(22, 163, 74, 0.45);
+  background: rgba(74, 222, 128, 0.4);
 }
 
 /* ─── Base ─── */
@@ -100,22 +87,15 @@ body {
   background: var(--background);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   margin: 0;
   display: flex;
   flex-direction: column;
 }
 
-/* Hover text fix */
-.hover\:bg-surface-hover:hover,
-[class*="hover:bg-surface-hover"]:hover {
-  color: var(--foreground);
-}
-
-/* ─── Animated gradient background for login/register ─── */
+/* ─── Animated gradient bg for login/register ─── */
 .animated-bg {
-  background: linear-gradient(-45deg, #0d1410, #0f2d18, #132b1a, #0d1a10);
+  background: linear-gradient(-45deg, #111113, #1a1a1e, #181820, #111113);
   background-size: 400% 400%;
   animation: gradientBG 15s ease infinite;
 }
@@ -134,20 +114,9 @@ body {
   }
 }
 
-/* ─── Chat background pattern utility ─── */
-@utility chat-bg {
-  background: var(--background);
-}
-
-/* ─── Pill / badge utilities ─── */
+/* ─── Online pill ─── */
 .pill-online {
   background: rgba(74, 222, 128, 0.12);
   color: #4ade80;
   border: 1px solid rgba(74, 222, 128, 0.25);
-}
-
-.dark .pill-online {
-  background: rgba(74, 222, 128, 0.14);
-  color: #4ade80;
-  border: 1px solid rgba(74, 222, 128, 0.28);
 }

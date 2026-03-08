@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/services/api';
+
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { X, Lock, KeyRound, User as UserIcon, CheckCircle2 } from 'lucide-react';
+import { X, Lock, KeyRound, User as UserIcon, CheckCircle2, Copy, Fingerprint } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Avatar } from '@/components/ui/Avatar';
@@ -23,11 +24,20 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
     const token = useAuthStore(state => state.token);
 
     const [tab, setTab] = useState<Tab>('profile');
+    const [displayId, setDisplayId] = useState<string | null>(null);
     const [newUsername, setNewUsername] = useState(user?.username || '');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [isLoadingUsername, setIsLoadingUsername] = useState(false);
     const [isLoadingPassword, setIsLoadingPassword] = useState(false);
+
+    // Always refetch displayId whenever the modal opens
+    useEffect(() => {
+        if (!isOpen) return;
+        api.get('/api/v1/users/me')
+            .then(res => { setDisplayId(res.data?.displayId || null); })
+            .catch(() => { setDisplayId(null); });
+    }, [isOpen]);
 
     const handleUpdateUsername = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -92,10 +102,33 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
                         </div>
 
                         {/* Avatar + identity */}
-                        <div className="px-6 pt-6 pb-4 border-b border-border flex flex-col items-center text-center bg-surface-elevated/40">
+                        <div className="px-6 pt-6 pb-4 border-b flex flex-col items-center text-center"
+                            style={{ borderColor: 'var(--border)', background: 'var(--surface-elevated)' }}>
                             <Avatar name={user.username} size="lg" />
-                            <h3 className="mt-3 text-lg font-heading font-semibold text-foreground">{user.username}</h3>
-                            <p className="text-xs text-zinc-500 mt-0.5">{user.email}</p>
+                            <h3 className="mt-3 text-lg font-heading font-semibold" style={{ color: 'var(--foreground)' }}>{user.username}</h3>
+                            <p className="text-xs mt-0.5" style={{ color: 'var(--foreground)', opacity: 0.45 }}>{user.email}</p>
+
+                            {/* User Display ID — only visible to self */}
+                            {displayId && (
+                                <div className="mt-3 w-full max-w-xs">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'var(--foreground)', opacity: 0.35 }}>
+                                        <Fingerprint size={9} className="inline mr-1" />Your User ID
+                                    </p>
+                                    <button
+                                        onClick={() => { navigator.clipboard.writeText(displayId); toast.success('User ID copied!', { icon: '📋' }); }}
+                                        className="flex items-center justify-between gap-2 w-full px-3 py-2 rounded-xl border font-mono text-sm transition-all group"
+                                        style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-hover)'}
+                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
+                                    >
+                                        <span>{displayId}</span>
+                                        <Copy size={12} style={{ color: 'var(--brand)', opacity: 0.7 }} />
+                                    </button>
+                                    <p className="text-[10px] mt-1" style={{ color: 'var(--foreground)', opacity: 0.35 }}>
+                                        Share this ID for room invitations or DMs
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Tabs */}
@@ -105,8 +138,8 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
                                     key={t}
                                     onClick={() => setTab(t)}
                                     className={`flex-1 py-2.5 text-sm font-medium transition-colors ${tab === t
-                                            ? 'text-brand border-b-2 border-brand'
-                                            : 'text-zinc-500 hover:text-foreground'
+                                        ? 'text-brand border-b-2 border-brand'
+                                        : 'text-zinc-500 hover:text-foreground'
                                         }`}
                                 >
                                     {t === 'profile' ? 'Update Username' : 'Change Password'}
