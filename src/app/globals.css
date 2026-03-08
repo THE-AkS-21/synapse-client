@@ -3,8 +3,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  
-  /* Brand/Accent Colors (Soothing Indigo/Violet) */
+
+  /* Brand/Accent Colors — Emerald Green */
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
   --color-brand-light: var(--brand-light);
@@ -21,41 +21,49 @@
   --font-heading: var(--font-outfit), sans-serif;
 }
 
-/* Base Light Mode (Soothing cool grays + bright backgrounds) */
+/* ─── Light Mode ─── */
 :root {
-  --background: #f8fafc; /* Slate 50 */
-  --foreground: #0f172a; /* Slate 900 */
-  
-  --brand: #6366f1; /* Indigo 500 */
-  --brand-hover: #4f46e5; /* Indigo 600 */
-  --brand-light: #e0e7ff; /* Indigo 100 */
+  --background: #f0f4f1;
+  --foreground: #111b14;
+
+  --brand: #16a34a;
+  --brand-hover: #15803d;
+  --brand-light: #dcfce7;
 
   --surface: #ffffff;
-  --surface-hover: #f1f5f9; /* Slate 100 */
-  --surface-elevated: #ffffff;
-  
-  --border: #e2e8f0; /* Slate 200 */
-  --border-hover: #cbd5e1; /* Slate 300 */
+  --surface-hover: #e2ece4;
+  --surface-elevated: #eaf2ec;
+
+  --border: #cad7cc;
+  --border-hover: #94b09a;
+
+  /* Sidebar-specific */
+  --sidebar-bg: #e8f0ea;
+  --sidebar-border: #cad7cc;
 }
 
-/* Dark Mode (Deep sophisticated premium darks) */
+/* ─── Dark Mode ─── */
 .dark {
-  --background: #09090b; /* Zinc 950 */
-  --foreground: #f4f4f5; /* Zinc 50 */
-  
-  --brand: #818cf8; /* Indigo 400 */
-  --brand-hover: #6366f1; /* Indigo 500 */
-  --brand-light: #3730a3; /* Indigo 800 */
+  --background: #0d1410;
+  --foreground: #e8f5eb;
 
-  --surface: rgba(24, 24, 27, 0.4); /* Zinc 900 w/ opacity */
-  --surface-hover: rgba(39, 39, 42, 0.5); /* Zinc 800 w/ opacity */
-  --surface-elevated: #18181b; /* Solid Zinc 900 */
-  
-  --border: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.15);
+  --brand: #4ade80;
+  --brand-hover: #22c55e;
+  --brand-light: #14532d;
+
+  --surface: rgba(20, 32, 22, 0.55);
+  --surface-hover: rgba(30, 50, 33, 0.65);
+  --surface-elevated: #172118;
+
+  --border: rgba(74, 222, 128, 0.10);
+  --border-hover: rgba(74, 222, 128, 0.22);
+
+  /* Sidebar-specific */
+  --sidebar-bg: #0f1a11;
+  --sidebar-border: rgba(74, 222, 128, 0.10);
 }
 
-/* Glassmorphism utilities */
+/* ─── Glassmorphism utilities ─── */
 @utility glass {
   background: var(--surface);
   backdrop-filter: blur(16px);
@@ -68,22 +76,26 @@
   border: 1px solid var(--border-hover);
 }
 
-/* Scrollbar customization */
+/* ─── Scrollbar ─── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(22, 163, 74, 0.25);
   border-radius: 10px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(22, 163, 74, 0.45);
 }
 
+/* ─── Base ─── */
 body {
   background: var(--background);
   color: var(--foreground);
@@ -95,15 +107,47 @@ body {
   flex-direction: column;
 }
 
-/* Animated gradient background for login/register */
+/* Hover text fix */
+.hover\:bg-surface-hover:hover,
+[class*="hover:bg-surface-hover"]:hover {
+  color: var(--foreground);
+}
+
+/* ─── Animated gradient background for login/register ─── */
 .animated-bg {
-  background: linear-gradient(-45deg, #09090b, #1e1b4b, #31114b, #09090b);
+  background: linear-gradient(-45deg, #0d1410, #0f2d18, #132b1a, #0d1a10);
   background-size: 400% 400%;
   animation: gradientBG 15s ease infinite;
 }
 
 @keyframes gradientBG {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ─── Chat background pattern utility ─── */
+@utility chat-bg {
+  background: var(--background);
+}
+
+/* ─── Pill / badge utilities ─── */
+.pill-online {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.25);
+}
+
+.dark .pill-online {
+  background: rgba(74, 222, 128, 0.14);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.28);
 }

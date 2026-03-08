@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { format, isToday } from 'date-fns';
 import { Avatar } from './Avatar';
 import { Message } from '@/store/chatStore';
+import { motion } from 'framer-motion';
 
 interface MessageBubbleProps {
     msg: Message;
@@ -17,42 +18,56 @@ const formatMessageTime = (timestamp: number) => {
 
 export const MessageBubble = memo(({ msg, isMe, isConsecutive }: MessageBubbleProps) => {
     return (
-        <div className={`flex w-full pb-4 ${isMe ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-1' : 'mt-4'}`}>
+        <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-0.5 pb-1' : 'mt-4 pb-1'}`}
+        >
             <div className={`flex max-w-[75%] gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                 {!isConsecutive && (
                     <Avatar
                         name={msg.senderName || '?'}
                         size="sm"
-                        theme={isMe ? 'indigo' : 'emerald'}
+                        theme={isMe ? 'brand' : 'slate'}
                     />
                 )}
-                {isConsecutive && <div className="w-8 flex-shrink-0"></div>}
+                {isConsecutive && <div className="w-8 flex-shrink-0" />}
 
                 <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                     {!isConsecutive && (
                         <div className="flex items-baseline gap-2 mb-1 px-1">
-                            <span className="text-sm font-semibold text-foreground">
+                            <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
                                 {isMe ? 'You' : msg.senderName}
                             </span>
                             {msg.timestamp && (
-                                <span className="text-xs text-zinc-500">
+                                <span className="text-[11px] tabular-nums" style={{ color: 'var(--foreground)', opacity: 0.4 }}>
                                     {formatMessageTime(msg.timestamp)}
                                 </span>
                             )}
                         </div>
                     )}
 
-                    <div
-                        className={`px-4 py-2.5 rounded-2xl ${isMe
-                            ? 'bg-brand text-white rounded-br-sm shadow-md shadow-brand/20'
-                            : 'bg-surface-elevated text-foreground border border-border rounded-bl-sm backdrop-blur-md'
-                            }`}
-                    >
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
-                    </div>
+                    {isMe ? (
+                        /* My message — brand green gradient */
+                        <div className="relative px-4 py-2.5 rounded-2xl rounded-br-sm text-white shadow-lg"
+                            style={{ background: 'linear-gradient(135deg, var(--brand), var(--brand-hover))' }}>
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                        </div>
+                    ) : (
+                        /* Other person's message — surface with border */
+                        <div className="relative px-4 py-2.5 rounded-2xl rounded-bl-sm border"
+                            style={{
+                                background: 'var(--surface-elevated)',
+                                borderColor: 'var(--border)',
+                                color: 'var(--foreground)',
+                            }}>
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                        </div>
+                    )}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 });
 
