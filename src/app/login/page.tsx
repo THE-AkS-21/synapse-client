@@ -7,7 +7,6 @@ import Image from 'next/image';
 import { api } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Mail, Lock, AlertCircle, Users, MessageCircle, Clock, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -52,8 +51,11 @@ export default function LoginPage() {
             setAuth({ id: username, username, email }, token);
             router.push('/dashboard');
         } catch (err: unknown) {
-            const e = err as { response?: { data?: { message?: string } } };
-            setError(e.response?.data?.message || 'Failed to login. Please check your credentials.');
+            const e = err as { response?: { data?: { message?: string, username?: string } } };
+            const data = e.response?.data;
+            const backendError = data?.message || data?.username;
+
+            setError(backendError || 'Failed to login. Please check your credentials.');
         } finally {
             setIsLoading(false);
         }
