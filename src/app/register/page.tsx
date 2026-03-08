@@ -37,7 +37,8 @@ export default function RegisterPage() {
             // Backend now returns token + user on successful registration (auto-login)
             if (res.data?.token && res.data?.username) {
                 const { token, username: uname } = res.data;
-                setAuth({ username: uname, email }, token);
+                // Pass uname as the id to satisfy the User interface requirements
+                setAuth({ id: uname, username: uname, email }, token);
                 router.push('/dashboard');
             } else {
                 router.push('/login?registered=1');
