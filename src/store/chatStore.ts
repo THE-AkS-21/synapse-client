@@ -3,6 +3,7 @@ import { create } from 'zustand';
 export interface Message {
     id: string;
     roomId: string;
+    senderId?: number;
     senderUsername: string;
     senderName: string;
     content: string;
@@ -19,7 +20,7 @@ export interface Room {
     id: string;
     name: string;
     type?: 'PUBLIC' | 'PRIVATE' | 'DIRECT';
-    creatorUsername?: string;
+    creatorId?: number;
     description?: string;
     createdAt?: string;
     /** For DM rooms — the other participant's username */

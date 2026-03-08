@@ -47,8 +47,8 @@ export default function LoginPage() {
         setError('');
         try {
             const res = await api.post('/api/auth/login', { email, password });
-            const { token, username } = res.data;
-            setAuth({ id: username, username, email }, token);
+            const { token, username, id } = res.data;
+            setAuth({ id: String(id), username, email }, token);
             router.push('/dashboard');
         } catch (err: unknown) {
             const e = err as { response?: { data?: { message?: string, username?: string } } };

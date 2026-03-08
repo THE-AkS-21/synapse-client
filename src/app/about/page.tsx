@@ -179,7 +179,7 @@ export default function AboutPage() {
                             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand to-cyan-500 flex items-center justify-center text-3xl font-bold text-white mx-auto mb-4 shadow-lg">
                                 S
                             </div>
-                            <h3 className="font-heading font-bold text-lg text-foreground">skaeht</h3>
+                            <h3 className="font-heading font-bold text-lg text-foreground">Ankit</h3>
                             <p className="text-sm text-zinc-500 mb-4 mt-1">Developer · Designer · Builder</p>
                             <div className="flex justify-center gap-3">
                                 <a href="https://github.com" target="_blank" rel="noopener noreferrer"
@@ -202,7 +202,7 @@ export default function AboutPage() {
                     <div className="lg:col-span-2 space-y-5">
                         <h2 className="text-2xl font-heading font-bold text-foreground">About the developer</h2>
                         <p className="text-zinc-500 leading-relaxed">
-                            skaeht is a full-stack developer with a passion for building tools that solve real problems. Synapse grew out of frustration with chat platforms that were either too bloated for casual use or too simple for anything serious. The goal was always to find the middle ground — something that works beautifully and gets out of the way.
+                            Ankit is a full-stack developer with a passion for building tools that solve real problems. Synapse grew out of frustration with chat platforms that were either too bloated for casual use or too simple for anything serious. The goal was always to find the middle ground — something that works beautifully and gets out of the way.
                         </p>
                         <p className="text-zinc-500 leading-relaxed">
                             Every feature in Synapse exists because it solves a genuine pain point: the lag in other platforms, the confusion of managing multiple thread types, the friction of setting up a simple team conversation. Building Synapse has been as much about learning what to leave out as it has been about what to include.

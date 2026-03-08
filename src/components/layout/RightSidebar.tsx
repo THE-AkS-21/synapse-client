@@ -13,7 +13,9 @@ export default function RightSidebar() {
     const currentUser = useAuthStore(state => state.user);
     const currentOnlineUsers = activeRoomId ? (onlineUsers[activeRoomId] || []) : [];
     const room = rooms.find(r => r.id === activeRoomId);
-    const isCreator = room?.creatorUsername === currentUser?.username;
+
+    // FIXED: Check against creatorId instead of creatorUsername
+    const isCreator = room?.creatorId === Number(currentUser?.id);
 
     const handleRemoveMember = async (userId: string, username: string) => {
         if (!activeRoomId) return;
@@ -26,7 +28,8 @@ export default function RightSidebar() {
         }
     };
 
-    const handleStartDM = async (partnerUsername: string) => {
+    // FIXED: Update to accept partnerId and use the /api/v1/rooms/direct endpoint
+    const handleStartDM = async (partnerId: string, partnerUsername: string) => {
         // Check if DM room already exists locally
         const existing = rooms.find(
             r => r.type === 'DIRECT' && r.dmPartner === partnerUsername
@@ -36,10 +39,10 @@ export default function RightSidebar() {
             return;
         }
         try {
-            const res = await api.post('/api/v1/rooms', {
-                name: `dm-${currentUser?.username}-${partnerUsername}`,
-                type: 'DIRECT',
-                participantUsername: partnerUsername,
+            // Call the correct endpoint with user1Id and user2Id
+            const res = await api.post('/api/v1/rooms/direct', {
+                user1Id: Number(currentUser?.id),
+                user2Id: Number(partnerId),
             });
             const newRoom = {
                 ...res.data,
@@ -66,7 +69,7 @@ export default function RightSidebar() {
 
     return (
         <aside className="w-60 flex flex-col h-full flex-shrink-0 transition-colors duration-300 relative overflow-hidden border-l"
-            style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--sidebar-border)' }}>
+               style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--sidebar-border)' }}>
 
             {/* Subtle green dot pattern */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{
@@ -75,11 +78,11 @@ export default function RightSidebar() {
             }} />
             {/* Top glow */}
             <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl pointer-events-none"
-                style={{ background: 'var(--brand)', opacity: 0.08 }} />
+                 style={{ background: 'var(--brand)', opacity: 0.08 }} />
 
             {/* Header */}
             <div className="h-16 flex items-center justify-between px-5 border-b backdrop-blur-md relative z-10"
-                style={{ borderColor: 'var(--sidebar-border)', background: 'var(--surface)' }}>
+                 style={{ borderColor: 'var(--sidebar-border)', background: 'var(--surface)' }}>
                 <h3 className="font-heading font-semibold text-sm tracking-tight" style={{ color: 'var(--foreground)' }}>
                     Room Members
                 </h3>
@@ -94,7 +97,7 @@ export default function RightSidebar() {
             {/* Members List */}
             <div className="flex-1 overflow-y-auto py-4 px-3 relative z-10">
                 <p className="text-[10px] font-bold uppercase tracking-widest mb-3 px-1"
-                    style={{ color: 'var(--foreground)', opacity: 0.45 }}>
+                   style={{ color: 'var(--foreground)', opacity: 0.45 }}>
                     Online — {currentOnlineUsers.length}
                 </p>
 
@@ -115,11 +118,11 @@ export default function RightSidebar() {
                         >
                             <div className="relative shrink-0">
                                 <div className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm"
-                                    style={{ background: `linear-gradient(135deg, var(--brand), var(--brand-hover))` }}>
+                                     style={{ background: `linear-gradient(135deg, var(--brand), var(--brand-hover))` }}>
                                     {u.username.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 shadow-sm"
-                                    style={{ background: '#4ade80', borderColor: 'var(--sidebar-bg)', boxShadow: '0 0 6px rgba(74,222,128,0.5)' }} />
+                                     style={{ background: '#4ade80', borderColor: 'var(--sidebar-bg)', boxShadow: '0 0 6px rgba(74,222,128,0.5)' }} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate transition-colors" style={{ color: 'var(--foreground)' }}>
@@ -134,7 +137,8 @@ export default function RightSidebar() {
                             {/* DM button — for other users */}
                             {u.username !== currentUser?.username && (
                                 <button
-                                    onClick={() => handleStartDM(u.username)}
+                                    // FIXED: Pass u.id to handleStartDM
+                                    onClick={() => handleStartDM(u.id, u.username)}
                                     className="p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100"
                                     style={{ color: 'var(--brand)' }}
                                     onMouseEnter={e => { e.currentTarget.style.background = 'var(--brand-light)'; }}

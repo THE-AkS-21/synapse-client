@@ -115,7 +115,7 @@ export default function ChatWindow() {
     const currentOnline = onlineUsers[activeRoomId] || [];
     const isPrivate = room?.type === 'PRIVATE';
     const isDM = room?.type === 'DIRECT';
-    const isCreator = room?.creatorUsername === currentUser?.username;
+    const isCreator = currentUser ? Number(currentUser.id) === room?.creatorId : false;
 
     return (
         <div className="flex-1 flex flex-col h-full relative overflow-hidden transition-colors duration-300"
