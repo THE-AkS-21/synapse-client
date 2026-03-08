@@ -3,6 +3,7 @@ import { create } from 'zustand';
 export interface Message {
     id: string;
     roomId: string;
+    senderId?: number;
     senderUsername: string;
     senderName: string;
     content: string;

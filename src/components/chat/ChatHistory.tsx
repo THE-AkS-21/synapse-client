@@ -9,12 +9,14 @@ import { MessageBubble } from '@/components/ui/MessageBubble';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 
+// FIXED: Updated to match the backend ChatMessage DTO
 interface RawMessage {
-    messageId: string;
+    id: string;
     roomId: string;
-    senderUsername: string;
+    senderId: number;
+    from: string;
     content: string;
-    timestamp: string;
+    timestamp: number;
 }
 
 export default function ChatHistory({ roomId }: { roomId: string }) {
@@ -35,10 +37,11 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
                 const history = Array.isArray(res.data) ? res.data : res.data.content || [];
                 if (active) {
                     const mappedHistory = history.map((msg: RawMessage) => ({
-                        id: msg.messageId,
+                        id: msg.id,
                         roomId: msg.roomId,
-                        senderUsername: msg.senderUsername,
-                        senderName: msg.senderUsername,
+                        senderId: msg.senderId,            // Added senderId map
+                        senderUsername: msg.from,          // Backend DTO sends username as 'from'
+                        senderName: msg.from,
                         content: msg.content,
                         timestamp: msg.timestamp,
                     }));
@@ -61,7 +64,7 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
     if (isLoading && roomMessages.length === 0) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center space-y-4 transition-colors duration-300"
-                style={{ background: 'var(--background)' }}>
+                 style={{ background: 'var(--background)' }}>
                 <motion.div
                     animate={{ scale: [0.95, 1.05, 0.95], opacity: [0.6, 1, 0.6] }}
                     transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
@@ -85,13 +88,16 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
                 initialTopMostItemIndex={roomMessages.length > 0 ? roomMessages.length - 1 : 0}
                 followOutput="smooth"
                 itemContent={(index, msg) => {
-                    const isMe = msg.senderUsername === user?.username;
-                    // A message is "consecutive" if the previous message has the same sender
-                    const isConsecutive = index > 0 && roomMessages[index - 1].senderUsername === msg.senderUsername;
-                    // Avatar shows at the LAST message of each group (not first)
-                    // isLast = true if next message has different sender (or this is the final message)
+                    // FIXED: Checks by ID instead of username (handles old DB cache + new WebSockets perfectly)
+                    const isMe = msg.senderId === Number(user?.id) || msg.senderUsername === user?.username;
+
+                    const isConsecutive = index > 0 &&
+                        (roomMessages[index - 1].senderId === msg.senderId ||
+                            roomMessages[index - 1].senderUsername === msg.senderUsername);
+
                     const nextMsg = roomMessages[index + 1];
-                    const isLast = !nextMsg || nextMsg.senderUsername !== msg.senderUsername;
+                    const isLast = !nextMsg ||
+                        (nextMsg.senderId !== msg.senderId && nextMsg.senderUsername !== msg.senderUsername);
 
                     return (
                         <MessageBubble
