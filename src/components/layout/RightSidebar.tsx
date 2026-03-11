@@ -143,7 +143,11 @@ export default function RightSidebar() {
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium truncate transition-colors flex items-center gap-1" style={{ color: 'var(--foreground)' }}>
                                         {u.username}
-                                        {isAdmin && <Shield size={12} className="text-indigo-400" title="Room Admin" />}
+                                        {isAdmin && (
+                                            <span title="Room Admin" className="flex">
+                                                <Shield size={12} className="text-indigo-400" />
+                                            </span>
+                                        )}
                                     </p>
                                     <p className="text-[11px] font-medium" style={{ color: isOnline ? '#4ade80' : 'var(--zinc-500)' }}>
                                         {isOnline ? 'Online' : 'Offline'}
