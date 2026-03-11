@@ -81,7 +81,7 @@ export default function ChatWindow() {
                         <div className="absolute inset-0 rounded-3xl blur-xl" style={{ background: 'var(--brand)', opacity: 0.2 }} />
                         <div className="relative w-20 h-20 rounded-3xl border shadow-2xl overflow-hidden"
                             style={{ background: 'var(--surface-elevated)', borderColor: 'var(--border)' }}>
-                            <Image src="/synapse_logo.png" alt="Synapse Logo" fill className="object-cover" priority />
+                            <Image src="/synapse_logo.png" alt="Synapse Logo" fill sizes="80px" className="object-cover" priority />
                         </div>
                     </motion.div>
                     <motion.h2 initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }}
@@ -183,8 +183,7 @@ export default function ChatWindow() {
             <AnimatePresence>
                 {isSettingsPanelOpen && (
                     <RoomSettingsPanel
-                        roomId={activeRoomId}
-                        roomName={room?.name || ''}
+                        room={room!}
                         isCreator={isCreator}
                         isPrivate={isPrivate}
                         onClose={() => setIsSettingsPanelOpen(false)}
