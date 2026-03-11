@@ -8,6 +8,7 @@ let stompClient: Client | null = null;
 let currentChatSubscription: StompSubscription | null = null;
 let currentPresenceSubscription: StompSubscription | null = null;
 let currentRoomId: string | null = null;
+let globalSubscription: StompSubscription | null = null;
 let heartbeatInterval: NodeJS.Timeout | null = null;
 
 const startHeartbeat = () => {
@@ -31,8 +32,9 @@ const stopHeartbeat = () => {
 type MessageCallback = (msg: Message) => void;
 type PresenceEvent = { onlineUsers: string[], typingUsers: string[] };
 type PresenceCallback = (presence: PresenceEvent) => void;
+type GlobalEventCallback = (event: any) => void;
 
-export const connectWebSocket = (roomId: string, token: string, onMessageReceived: MessageCallback, onPresenceReceived: PresenceCallback) => {
+export const connectWebSocket = (roomId: string, token: string, onMessageReceived: MessageCallback, onPresenceReceived: PresenceCallback, onGlobalEventReceived: GlobalEventCallback) => {
     if (stompClient && stompClient.connected) {
         changeRoomSubscription(roomId, onMessageReceived, onPresenceReceived);
         return;
@@ -51,6 +53,12 @@ export const connectWebSocket = (roomId: string, token: string, onMessageReceive
 
     stompClient.onConnect = () => {
         console.debug("[WebSocket] Connected successfully");
+
+        // Subscribe to global events ONCE per connection
+        globalSubscription = stompClient!.subscribe('/topic/global-events', (msg: IMessage) => {
+            if (msg.body) onGlobalEventReceived(JSON.parse(msg.body));
+        });
+
         changeRoomSubscription(roomId, onMessageReceived, onPresenceReceived);
         startHeartbeat();
     };
@@ -106,6 +114,7 @@ export const disconnectWebSocket = (roomId: string) => {
     if (currentRoomId === roomId) {
         if (currentChatSubscription) currentChatSubscription.unsubscribe();
         if (currentPresenceSubscription) currentPresenceSubscription.unsubscribe();
+        if (globalSubscription) globalSubscription.unsubscribe();
 
         if (stompClient && stompClient.connected) {
             stompClient.publish({

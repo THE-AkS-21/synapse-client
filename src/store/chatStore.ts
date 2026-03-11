@@ -34,6 +34,7 @@ interface ChatState {
     onlineUsers: Record<string, UserPresence[]>;
     typingUsers: Record<string, string[]>;
 
+    removeRoom: (roomId: string) => void;
     setRooms: (rooms: Room[]) => void;
     addRoom: (room: Room) => void;
     setActiveRoom: (roomId: string | null) => void;
@@ -58,6 +59,10 @@ export const useChatStore = create<ChatState>((set) => ({
         rooms: state.rooms.some(r => r.id === room.id)
             ? state.rooms
             : [room, ...state.rooms],
+    })),
+
+    removeRoom: (roomId) => set((state) => ({
+        rooms: state.rooms.filter(r => r.id !== roomId),
     })),
 
     setActiveRoom: (roomId) => set({ activeRoomId: roomId }),
