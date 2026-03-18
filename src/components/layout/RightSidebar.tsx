@@ -14,7 +14,6 @@ export default function RightSidebar() {
     const currentUser = useAuthStore(state => state.user);
     const { closeSidebars } = useUiStore();
 
-    // Memoize to prevent unnecessary re-renders when other rooms update
     const currentOnlineUsers = useMemo(() =>
             activeRoomId ? (onlineUsers[activeRoomId] || []) : [],
         [activeRoomId, onlineUsers]);
@@ -76,7 +75,6 @@ export default function RightSidebar() {
         <aside className="w-72 sm:w-80 lg:w-60 flex flex-col h-full flex-shrink-0 relative overflow-hidden border-l"
                style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--sidebar-border)' }}>
 
-            {/* Header & Status */}
             <div className="h-16 flex items-center justify-between px-5 border-b backdrop-blur-md relative z-10"
                  style={{ borderColor: 'var(--sidebar-border)', background: 'var(--surface)' }}>
                 <h3 className="font-heading font-semibold text-sm">Room Members</h3>
@@ -89,16 +87,18 @@ export default function RightSidebar() {
                 </div>
             </div>
 
-            {/* Member List */}
             <div className="flex-1 overflow-y-auto py-4 px-3 relative z-10">
                 <motion.ul variants={containerVariants} initial="hidden" animate="visible" className="space-y-1">
                     {allMembers.map((u) => {
                         const isMe = u.username === currentUser?.username;
                         const isAdmin = room?.creatorId === Number(u.id);
 
-                        // Flawless status matching against live WS state
+                        // CRITICAL FIX: The backend broadcasts presence using the Principal's email.
+                        // We must match against u.email as well to accurately determine if they are online.
                         const isOnline = isMe || currentOnlineUsers.some(ou =>
-                            String(ou.id) === String(u.id) || ou.username === u.username
+                            String(ou.id) === String(u.id) ||
+                            ou.username === u.username ||
+                            ou.username === u.email
                         );
 
                         return (

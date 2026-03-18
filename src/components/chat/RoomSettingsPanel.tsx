@@ -55,9 +55,9 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
             await api.delete(`/api/v1/rooms/${room.id}/messages`);
             toast.success('All messages cleared.');
             onClose();
-            // Note: The websocket will broadcast 'MESSAGES_CLEARED' to instantly clear the UI for all users
-        } catch {
-            toast.error('Failed to clear messages.');
+        } catch (err: any) {
+            const data = err?.response?.data;
+            toast.error(data?.message || (typeof data === 'string' ? data : 'Failed to clear messages.'));
         } finally {
             setIsClearing(false);
             setConfirmClear(false);
@@ -72,8 +72,9 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
             setActiveRoom(null);
             toast.success(`${isDM ? 'Chat' : 'Room'} deleted.`);
             onClose();
-        } catch {
-            toast.error(`Failed to delete ${isDM ? 'chat' : 'room'}.`);
+        } catch (err: any) {
+            const data = err?.response?.data;
+            toast.error(data?.message || (typeof data === 'string' ? data : `Failed to delete ${isDM ? 'chat' : 'room'}.`));
         } finally {
             setIsDeleting(false);
             setConfirmDelete(false);
@@ -86,11 +87,15 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
         if (!id) return;
         setIsInviting(true);
         try {
-            await api.post('/api/v1/invitations', { type: 'ROOM', roomId: room.id, toDisplayId: id });
+            // CRITICAL FIX: Using the correct endpoint structure expected by InvitationController
+            await api.post(`/api/v1/invitations/room/${room.id}/invite`, null, {
+                params: { targetDisplayId: id }
+            });
             toast.success(`Invitation sent!`);
             setInviteId('');
-        } catch (err: unknown) {
-            const msg = (err as { response?: { data?: string } })?.response?.data || 'Failed to send invitation.';
+        } catch (err: any) {
+            const data = err?.response?.data;
+            const msg = data?.message || (typeof data === 'string' ? data : 'Failed to send invitation.');
             toast.error(msg);
         } finally {
             setIsInviting(false);
@@ -126,7 +131,6 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
             </div>
 
             <div className="p-4 space-y-4">
-                {/* Display ID */}
                 <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--foreground)', opacity: 0.4 }}>
                         {isDM ? `${room.dmPartner}'s Unique ID` : 'Room ID'}
@@ -140,7 +144,6 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
                     </div>
                 </div>
 
-                {/* Invite Member */}
                 {isCreator && !isDM && (
                     <div>
                         <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--foreground)', opacity: 0.4 }}>
@@ -164,11 +167,8 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
                     </div>
                 )}
 
-                {/* Admin Actions */}
                 {(isCreator || isDM) && (
                     <div className="border-t pt-3 space-y-2" style={{ borderColor: 'var(--border)' }}>
-
-                        {/* Clear Messages */}
                         <AnimatePresence mode="wait">
                             {!confirmClear ? (
                                 <motion.button key="clear-btn"
@@ -202,7 +202,6 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
                             )}
                         </AnimatePresence>
 
-                        {/* Delete Room/Chat */}
                         <AnimatePresence mode="wait">
                             {!confirmDelete ? (
                                 <motion.button key="del-btn"

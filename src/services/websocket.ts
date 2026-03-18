@@ -11,7 +11,6 @@ let globalSubscription: StompSubscription | null = null;
 let currentRoomId: string | null = null;
 let heartbeatInterval: NodeJS.Timeout | null = null;
 
-// Synchronizes with backend PresenceService.java (HEARTBEAT_TTL_SECONDS = 60)
 const startHeartbeat = () => {
     stopHeartbeat();
     const sendBeat = () => {
@@ -20,7 +19,7 @@ const startHeartbeat = () => {
         }
     };
     sendBeat();
-    heartbeatInterval = setInterval(sendBeat, 25000); // Send every 25s
+    heartbeatInterval = setInterval(sendBeat, 25000);
 };
 
 const stopHeartbeat = () => {
@@ -50,7 +49,6 @@ export const connectWebSocket = (
     });
 
     stompClient.onConnect = () => {
-        // Global events (like room deletion or invites)
         globalSubscription = stompClient!.subscribe('/topic/global-events', (msg: IMessage) => {
             if (msg.body) onGlobalEventReceived(JSON.parse(msg.body));
         });
@@ -102,7 +100,12 @@ export const disconnectWebSocket = (roomId: string) => {
 };
 
 export const sendMessage = (roomId: string, content: string) => {
-    stompClient?.publish({ destination: `/app/room/${roomId}`, body: JSON.stringify({ content }) });
+    // Generate the hybrid client-side timestamp
+    const timestamp = Date.now();
+    stompClient?.publish({
+        destination: `/app/room/${roomId}`,
+        body: JSON.stringify({ content, timestamp })
+    });
 };
 
 export const sendTypingStatus = (roomId: string, isTyping: boolean) => {

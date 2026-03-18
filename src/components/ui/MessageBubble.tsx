@@ -25,17 +25,17 @@ export const MessageBubble = memo(({ msg, isMe, isConsecutive, isLast }: Message
     const getBubbleStyles = () => {
         if (isMe) {
             return `px-4 py-2.5 text-white shadow-md ${
-                !isConsecutive && !isLast ? 'rounded-2xl rounded-br-sm' : // Single message
-                    !isConsecutive ? 'rounded-2xl rounded-br-md' :            // Top of group
-                        !isLast ? 'rounded-l-2xl rounded-r-md' :                  // Middle of group
-                            'rounded-2xl rounded-tr-md rounded-br-sm'                 // Bottom of group
+                !isConsecutive && !isLast ? 'rounded-2xl rounded-br-sm' :
+                    !isConsecutive ? 'rounded-2xl rounded-br-md' :
+                        !isLast ? 'rounded-l-2xl rounded-r-md' :
+                            'rounded-2xl rounded-tr-md rounded-br-sm'
             }`;
         } else {
             return `px-4 py-2.5 border ${
-                !isConsecutive && !isLast ? 'rounded-2xl rounded-bl-sm' : // Single message
-                    !isConsecutive ? 'rounded-2xl rounded-bl-md' :            // Top of group
-                        !isLast ? 'rounded-r-2xl rounded-l-md' :                  // Middle of group
-                            'rounded-2xl rounded-tl-md rounded-bl-sm'                 // Bottom of group
+                !isConsecutive && !isLast ? 'rounded-2xl rounded-bl-sm' :
+                    !isConsecutive ? 'rounded-2xl rounded-bl-md' :
+                        !isLast ? 'rounded-r-2xl rounded-l-md' :
+                            'rounded-2xl rounded-tl-md rounded-bl-sm'
             }`;
         }
     };
@@ -49,12 +49,12 @@ export const MessageBubble = memo(({ msg, isMe, isConsecutive, isLast }: Message
         >
             <div className={`flex max-w-[75%] gap-2.5 items-end ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
 
-                {/* Only render the avatar spacer if it's NOT the current user */}
+                {/* Avatar spacer for alignment */}
                 {!isMe && (
                     <div className="flex-shrink-0 w-8">
                         {showAvatar && (
                             <Avatar
-                                name={msg.senderName || '?'}
+                                name={msg.senderName || msg.senderUsername || '?'}
                                 size="sm"
                                 theme="slate"
                             />
@@ -66,18 +66,18 @@ export const MessageBubble = memo(({ msg, isMe, isConsecutive, isLast }: Message
                     {/* Name + timestamp — only on first message of a group */}
                     {!isConsecutive && (
                         <div className="flex items-baseline gap-2 mb-0.5 px-1">
-                            <span className="text-[13px] font-semibold" style={{ color: 'var(--foreground)' }}>
-                                {isMe ? 'You' : msg.senderName}
+                            <span className="text-[13px] font-bold" style={{ color: 'var(--brand)' }}>
+                                {isMe ? 'You' : (msg.senderName || msg.senderUsername)}
                             </span>
                             {msg.timestamp && (
-                                <span className="text-[11px] tabular-nums" style={{ color: 'var(--foreground)', opacity: 0.4 }}>
+                                <span className="text-[10px] opacity-40 font-mono">
                                     {formatMessageTime(msg.timestamp)}
                                 </span>
                             )}
                         </div>
                     )}
 
-                    {/* Unified Bubble rendering using the dynamic styles */}
+                    {/* Unified Bubble rendering */}
                     <div
                         className={getBubbleStyles()}
                         style={isMe

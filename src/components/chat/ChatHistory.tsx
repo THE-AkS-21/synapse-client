@@ -2,22 +2,29 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/services/api';
-import { useChatStore } from '@/store/chatStore';
+import { useChatStore, Message } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { Virtuoso } from 'react-virtuoso';
 import { MessageBubble } from '@/components/ui/MessageBubble';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 
-// FIXED: Updated to match the backend ChatMessage DTO
 interface RawMessage {
     id: string;
     roomId: string;
     senderId: number;
-    from: string;
+    senderUsername: string;
+    receiverUsername?: string;
     content: string;
     timestamp: number;
+    traceId?: string;
 }
+
+// Helper to reliably check if two messages are from the same person
+const isSameSender = (msg1: Message, msg2: Message) => {
+    if (msg1.senderId && msg2.senderId) return String(msg1.senderId) === String(msg2.senderId);
+    return msg1.senderUsername === msg2.senderUsername;
+};
 
 export default function ChatHistory({ roomId }: { roomId: string }) {
     const messages = useChatStore((state) => state.messages);
@@ -39,9 +46,9 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
                     const mappedHistory = history.map((msg: RawMessage) => ({
                         id: msg.id,
                         roomId: msg.roomId,
-                        senderId: msg.senderId,            // Added senderId map
-                        senderUsername: msg.from,          // Backend DTO sends username as 'from'
-                        senderName: msg.from,
+                        senderId: msg.senderId,
+                        senderUsername: msg.senderUsername,
+                        senderName: msg.senderUsername,
                         content: msg.content,
                         timestamp: msg.timestamp,
                     }));
@@ -88,25 +95,26 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
                 initialTopMostItemIndex={roomMessages.length > 0 ? roomMessages.length - 1 : 0}
                 followOutput="smooth"
                 itemContent={(index, msg) => {
-                    // FIXED: Checks by ID instead of username (handles old DB cache + new WebSockets perfectly)
-                    const isMe = String(msg.senderId) === String(user?.id) ||
-                        msg.senderUsername === user?.username;
-
-                    const isConsecutive = index > 0 &&
-                        (roomMessages[index - 1].senderId === msg.senderId ||
-                            roomMessages[index - 1].senderUsername === msg.senderUsername);
-
+                    const prevMsg = roomMessages[index - 1];
                     const nextMsg = roomMessages[index + 1];
-                    const isLast = !nextMsg ||
-                        (nextMsg.senderId !== msg.senderId && nextMsg.senderUsername !== msg.senderUsername);
+
+                    const isMe = String(msg.senderId) === String(user?.id) || msg.senderUsername === user?.username;
+
+                    // 1. Time Gap Logic (5 mins = 300000ms) - Determines if we need a new Header (Name + Time)
+                    const timeGapToPrev = prevMsg ? Math.abs(msg.timestamp - prevMsg.timestamp) : 0;
+                    const isNewGroup = !prevMsg || !isSameSender(msg, prevMsg) || timeGapToPrev > 300000;
+
+                    // 2. Last In Group - Determines if we show the Avatar Bubble
+                    const timeGapToNext = nextMsg ? Math.abs(nextMsg.timestamp - msg.timestamp) : 0;
+                    const isLastInGroup = !nextMsg || !isSameSender(msg, nextMsg) || timeGapToNext > 300000;
 
                     return (
                         <MessageBubble
                             key={msg.id}
                             msg={msg}
                             isMe={isMe}
-                            isConsecutive={isConsecutive}
-                            isLast={isLast}
+                            isConsecutive={!isNewGroup}
+                            isLast={isLastInGroup}
                         />
                     );
                 }}

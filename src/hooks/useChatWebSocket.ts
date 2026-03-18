@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 export const useChatWebSocket = (roomId: string | null, token: string | null) => {
     const appendMessage = useChatStore((state) => state.appendMessage);
     const setOnlineUsers = useChatStore((state) => state.setOnlineUsers);
-    const setTypingUsers = useChatStore((state) => state.setTypingUsers);
     const removeRoom = useChatStore((state) => state.removeRoom);
     const activeRoomId = useChatStore((state) => state.activeRoomId);
     const setActiveRoom = useChatStore((state) => state.setActiveRoom);
@@ -19,7 +18,7 @@ export const useChatWebSocket = (roomId: string | null, token: string | null) =>
                 const mappedMessage: Message = {
                     id: newMessage.id,
                     roomId: newMessage.roomId,
-                    senderId: newMessage.senderId, // Fixed reference error here
+                    senderId: newMessage.senderId,
                     senderUsername: newMessage.senderUsername || newMessage.from || 'Unknown',
                     senderName: newMessage.senderUsername || newMessage.from || 'Unknown',
                     content: newMessage.content,
@@ -27,15 +26,15 @@ export const useChatWebSocket = (roomId: string | null, token: string | null) =>
                 };
                 appendMessage(roomId, mappedMessage);
             },
-            (presenceEvent: { onlineUsers: string[], typingUsers: string[] }) => {
+            (presenceEvent: { onlineUsers: string[] }) => {
                 const mappedOnlineUsers: UserPresence[] = (presenceEvent.onlineUsers || []).map((u: any) => {
-                    // Normalize backend data whether it sends full objects or string identifiers
+                    // Normalize backend data
                     const username = typeof u === 'string' ? u : (u.username || u.id || 'Unknown');
                     return { id: username, username };
                 });
 
                 setOnlineUsers(roomId, mappedOnlineUsers);
-                setTypingUsers(roomId, presenceEvent.typingUsers || []);
+                // Typing status handling removed
             },
             (globalEvent: any) => {
                 if (globalEvent.type === 'ROOM_DELETED') {
@@ -53,5 +52,5 @@ export const useChatWebSocket = (roomId: string | null, token: string | null) =>
         return () => {
             disconnectWebSocket(roomId);
         };
-    }, [roomId, token, appendMessage, setOnlineUsers, setTypingUsers, removeRoom, activeRoomId, setActiveRoom]);
+    }, [roomId, token, appendMessage, setOnlineUsers, removeRoom, activeRoomId, setActiveRoom]);
 };
