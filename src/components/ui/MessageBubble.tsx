@@ -8,7 +8,7 @@ interface MessageBubbleProps {
     msg: Message;
     isMe: boolean;
     isConsecutive: boolean;
-    isLast: boolean; // True when this is the last message in a consecutive group
+    isLast: boolean;
 }
 
 const formatMessageTime = (timestamp: number) => {
@@ -18,8 +18,27 @@ const formatMessageTime = (timestamp: number) => {
 };
 
 export const MessageBubble = memo(({ msg, isMe, isConsecutive, isLast }: MessageBubbleProps) => {
-    // Show avatar at the BOTTOM of each group (isLast), aligned with the last bubble
-    const showAvatar = isLast;
+    // Only show avatars for OTHER users, at the bottom of their message group
+    const showAvatar = isLast && !isMe;
+
+    // Dynamic border radius for the "hugging" effect on consecutive messages
+    const getBubbleStyles = () => {
+        if (isMe) {
+            return `px-4 py-2.5 text-white shadow-md ${
+                !isConsecutive && !isLast ? 'rounded-2xl rounded-br-sm' : // Single message
+                    !isConsecutive ? 'rounded-2xl rounded-br-md' :            // Top of group
+                        !isLast ? 'rounded-l-2xl rounded-r-md' :                  // Middle of group
+                            'rounded-2xl rounded-tr-md rounded-br-sm'                 // Bottom of group
+            }`;
+        } else {
+            return `px-4 py-2.5 border ${
+                !isConsecutive && !isLast ? 'rounded-2xl rounded-bl-sm' : // Single message
+                    !isConsecutive ? 'rounded-2xl rounded-bl-md' :            // Top of group
+                        !isLast ? 'rounded-r-2xl rounded-l-md' :                  // Middle of group
+                            'rounded-2xl rounded-tl-md rounded-bl-sm'                 // Bottom of group
+            }`;
+        }
+    };
 
     return (
         <motion.div
@@ -28,20 +47,23 @@ export const MessageBubble = memo(({ msg, isMe, isConsecutive, isLast }: Message
             transition={{ duration: 0.18, ease: 'easeOut' }}
             className={`flex w-full items-end ${isMe ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-0.5 pb-0.5' : 'mt-4 pb-0.5'}`}
         >
-            <div className={`flex max-w-[72%] gap-2.5 items-end ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                {/* Avatar space — always reserve the width to align bubbles properly */}
-                <div className="flex-shrink-0 w-8">
-                    {showAvatar && (
-                        <Avatar
-                            name={msg.senderName || '?'}
-                            size="sm"
-                            theme={isMe ? 'brand' : 'slate'}
-                        />
-                    )}
-                </div>
+            <div className={`flex max-w-[75%] gap-2.5 items-end ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+
+                {/* Only render the avatar spacer if it's NOT the current user */}
+                {!isMe && (
+                    <div className="flex-shrink-0 w-8">
+                        {showAvatar && (
+                            <Avatar
+                                name={msg.senderName || '?'}
+                                size="sm"
+                                theme="slate"
+                            />
+                        )}
+                    </div>
+                )}
 
                 <div className={`flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
-                    {/* Name + timestamp — only on first message of group */}
+                    {/* Name + timestamp — only on first message of a group */}
                     {!isConsecutive && (
                         <div className="flex items-baseline gap-2 mb-0.5 px-1">
                             <span className="text-[13px] font-semibold" style={{ color: 'var(--foreground)' }}>
@@ -55,21 +77,16 @@ export const MessageBubble = memo(({ msg, isMe, isConsecutive, isLast }: Message
                         </div>
                     )}
 
-                    {isMe ? (
-                        <div className="relative px-4 py-2.5 rounded-2xl rounded-br-sm text-white shadow-md"
-                            style={{ background: 'linear-gradient(135deg, var(--brand), var(--brand-hover))' }}>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
-                        </div>
-                    ) : (
-                        <div className="relative px-4 py-2.5 rounded-2xl rounded-bl-sm border"
-                            style={{
-                                background: 'var(--surface-elevated)',
-                                borderColor: 'var(--border)',
-                                color: 'var(--foreground)',
-                            }}>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
-                        </div>
-                    )}
+                    {/* Unified Bubble rendering using the dynamic styles */}
+                    <div
+                        className={getBubbleStyles()}
+                        style={isMe
+                            ? { background: 'linear-gradient(135deg, var(--brand), var(--brand-hover))' }
+                            : { background: 'var(--surface-elevated)', borderColor: 'var(--border)', color: 'var(--foreground)' }
+                        }
+                    >
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                    </div>
                 </div>
             </div>
         </motion.div>

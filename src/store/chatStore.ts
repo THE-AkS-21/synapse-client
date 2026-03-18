@@ -21,10 +21,8 @@ export interface Room {
     name: string;
     type?: 'PUBLIC' | 'PRIVATE' | 'DIRECT';
     creatorId?: number;
-    description?: string;
-    createdAt?: string;
-    /** For DM rooms — the other participant's username */
     dmPartner?: string;
+    participants?: { id: number | string, username: string }[];
 }
 
 interface ChatState {
@@ -35,8 +33,8 @@ interface ChatState {
     typingUsers: Record<string, string[]>;
 
     removeRoom: (roomId: string) => void;
-    setRooms: (rooms: Room[]) => void;
-    addRoom: (room: Room) => void;
+    setRooms: (rooms: Room[], currentUserId?: string | number) => void;
+    addRoom: (room: Room, currentUserId?: string | number) => void;
     setActiveRoom: (roomId: string | null) => void;
 
     setMessages: (roomId: string, messages: Message[]) => void;
@@ -46,6 +44,15 @@ interface ChatState {
     setTypingUsers: (roomId: string, users: string[]) => void;
 }
 
+const formatRoom = (room: Room, currentUserId?: string | number): Room => {
+    if (room.type === 'DIRECT' && currentUserId && room.participants) {
+        const partner = room.participants.find(p => String(p.id) !== String(currentUserId));
+        const partnerName = partner ? partner.username : room.dmPartner || 'Unknown User';
+        return { ...room, dmPartner: partnerName, name: partnerName };
+    }
+    return room;
+};
+
 export const useChatStore = create<ChatState>((set) => ({
     rooms: [],
     activeRoomId: null,
@@ -53,13 +60,14 @@ export const useChatStore = create<ChatState>((set) => ({
     onlineUsers: {},
     typingUsers: {},
 
-    setRooms: (rooms) => set({ rooms }),
+    setRooms: (rooms, currentUserId) => set({
+        rooms: rooms.map(r => formatRoom(r, currentUserId))
+    }),
 
-    addRoom: (room) => set((state) => ({
-        rooms: state.rooms.some(r => r.id === room.id)
-            ? state.rooms
-            : [room, ...state.rooms],
-    })),
+    addRoom: (room, currentUserId) => set((state) => {
+        if (state.rooms.some(r => r.id === room.id)) return state;
+        return { rooms: [formatRoom(room, currentUserId), ...state.rooms] };
+    }),
 
     removeRoom: (roomId) => set((state) => ({
         rooms: state.rooms.filter(r => r.id !== roomId),

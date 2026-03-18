@@ -122,10 +122,13 @@ export default function LeftSidebar() {
 
     const fetchPublicRooms = useCallback(async () => {
         try {
-            const res = await api.get('/api/v1/rooms/public?size=50');
+            // FIXED: Removed ?size=50 to match backend endpoint properly
+            const res = await api.get('/api/v1/rooms/public');
             const content: Room[] = res.data?.content ?? res.data;
             setPublicRooms(content.filter((r: Room) => r.type === 'PUBLIC'));
-        } catch {}
+        } catch (err) {
+            console.error("Failed to fetch public rooms:", err);
+        }
     }, []);
 
     useEffect(() => {

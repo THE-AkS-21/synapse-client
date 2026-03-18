@@ -51,10 +51,20 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
             }
             toast.success('Username updated!');
             onClose();
-        } catch (err: unknown) {
-            const e = err as { response?: { data?: unknown } };
-            const msg = e.response?.data;
-            toast.error(typeof msg === 'string' ? msg : 'Failed to update username.');
+        } catch (err: any) {
+            const data = err.response?.data;
+            let errorMessage = 'Failed to update username.';
+
+            // Safely extract the error message
+            if (Array.isArray(data) && data.length > 0) {
+                errorMessage = data[0]; // Extracts "Username already taken" from the array
+            } else if (typeof data === 'string') {
+                errorMessage = data;
+            } else if (data?.message) {
+                errorMessage = data.message;
+            }
+
+            toast.error(errorMessage);
         } finally {
             setIsLoadingUsername(false);
         }
@@ -71,10 +81,19 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
             setCurrentPassword('');
             setNewPassword('');
             onClose();
-        } catch (err: unknown) {
-            const e = err as { response?: { data?: unknown } };
-            const msg = e.response?.data;
-            toast.error(typeof msg === 'string' ? msg : 'Failed to update password. Check your current password.');
+        } catch (err: any) {
+            const data = err.response?.data;
+            let errorMessage = 'Failed to update password. Check your current password.';
+
+            if (Array.isArray(data) && data.length > 0) {
+                errorMessage = data[0];
+            } else if (typeof data === 'string') {
+                errorMessage = data;
+            } else if (data?.message) {
+                errorMessage = data.message;
+            }
+
+            toast.error(errorMessage);
         } finally {
             setIsLoadingPassword(false);
         }

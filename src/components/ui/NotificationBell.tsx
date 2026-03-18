@@ -6,6 +6,7 @@ import { Bell, Check, X, MessageCircle, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/services/api';
 import { useChatStore } from '@/store/chatStore';
+import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 
 interface Invitation {
@@ -24,7 +25,9 @@ export default function NotificationBell() {
     const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
     const [mounted, setMounted] = useState(false);
     const bellRef = useRef<HTMLButtonElement>(null);
+
     const { setRooms, setActiveRoom } = useChatStore();
+    const currentUser = useAuthStore(state => state.user); // Fetched to properly format newly accepted DMs
 
     // Only render portal after hydration
     useEffect(() => { setMounted(true); }, []);
@@ -75,7 +78,10 @@ export default function NotificationBell() {
         try {
             await api.put(`/api/v1/invitations/${inv.id}/accept`);
             const roomsRes = await api.get('/api/v1/rooms/user');
-            setRooms(roomsRes.data);
+
+            // Pass currentUser?.id to format the partner's name correctly in the store
+            setRooms(roomsRes.data, currentUser?.id);
+
             if (inv.type === 'ROOM' && inv.roomId) setActiveRoom(inv.roomId);
             toast.success(inv.type === 'ROOM' ? `Joined #${inv.roomName}!` : `DM accepted!`);
             setInvitations(prev => prev.filter(i => i.id !== inv.id));
@@ -124,7 +130,7 @@ export default function NotificationBell() {
                 </AnimatePresence>
             </button>
 
-            {/* Portal — rendered directly in body to escape overflow-hidden */}
+            {/* Portal — rendered directly in body to escape overflow-hidden constraints */}
             {mounted && isOpen && createPortal(
                 <div
                     id="notification-panel-root"
@@ -150,19 +156,19 @@ export default function NotificationBell() {
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b"
-                            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+                             style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
                             <div className="flex items-center gap-2">
                                 <Bell size={13} style={{ color: 'var(--brand)' }} />
                                 <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Notifications</span>
                                 {count > 0 && (
                                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                                        style={{ background: 'var(--brand-light)', color: 'var(--brand)' }}>{count}</span>
+                                          style={{ background: 'var(--brand-light)', color: 'var(--brand)' }}>{count}</span>
                                 )}
                             </div>
                             <button onClick={() => setIsOpen(false)} className="p-1 rounded transition-colors"
-                                style={{ color: 'var(--foreground)', opacity: 0.5 }}
-                                onMouseEnter={e => (e.currentTarget).style.opacity = '1'}
-                                onMouseLeave={e => (e.currentTarget).style.opacity = '0.5'}>
+                                    style={{ color: 'var(--foreground)', opacity: 0.5 }}
+                                    onMouseEnter={e => (e.currentTarget).style.opacity = '1'}
+                                    onMouseLeave={e => (e.currentTarget).style.opacity = '0.5'}>
                                 <X size={13} />
                             </button>
                         </div>
@@ -172,7 +178,7 @@ export default function NotificationBell() {
                             {isFetching && invitations.length === 0 ? (
                                 <div className="flex items-center justify-center py-10">
                                     <div className="w-5 h-5 rounded-full border-2 animate-spin"
-                                        style={{ borderColor: 'var(--brand)', borderTopColor: 'transparent' }} />
+                                         style={{ borderColor: 'var(--brand)', borderTopColor: 'transparent' }} />
                                 </div>
                             ) : invitations.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-10 gap-2">
@@ -182,10 +188,10 @@ export default function NotificationBell() {
                             ) : (
                                 invitations.map(inv => (
                                     <div key={inv.id}
-                                        className="flex items-start gap-3 px-4 py-3 border-b"
-                                        style={{ borderColor: 'var(--border)' }}>
+                                         className="flex items-start gap-3 px-4 py-3 border-b"
+                                         style={{ borderColor: 'var(--border)' }}>
                                         <div className="mt-0.5 shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
-                                            style={{ background: inv.type === 'ROOM' ? 'var(--brand-light)' : 'rgba(99,102,241,0.12)' }}>
+                                             style={{ background: inv.type === 'ROOM' ? 'var(--brand-light)' : 'rgba(99,102,241,0.12)' }}>
                                             {inv.type === 'ROOM'
                                                 ? <Hash size={13} style={{ color: 'var(--brand)' }} />
                                                 : <MessageCircle size={13} style={{ color: '#818cf8' }} />}
@@ -202,17 +208,17 @@ export default function NotificationBell() {
                                             </p>
                                             <div className="flex gap-2 mt-2">
                                                 <button onClick={() => handleAccept(inv)}
-                                                    className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold rounded-lg text-white transition-all"
-                                                    style={{ background: 'var(--brand)' }}
-                                                    onMouseEnter={e => (e.currentTarget).style.background = 'var(--brand-hover)'}
-                                                    onMouseLeave={e => (e.currentTarget).style.background = 'var(--brand)'}>
+                                                        className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold rounded-lg text-white transition-all"
+                                                        style={{ background: 'var(--brand)' }}
+                                                        onMouseEnter={e => (e.currentTarget).style.background = 'var(--brand-hover)'}
+                                                        onMouseLeave={e => (e.currentTarget).style.background = 'var(--brand)'}>
                                                     <Check size={10} /> Accept
                                                 </button>
                                                 <button onClick={() => handleDecline(inv)}
-                                                    className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium rounded-lg border transition-colors"
-                                                    style={{ color: 'var(--foreground)', borderColor: 'var(--border)' }}
-                                                    onMouseEnter={e => (e.currentTarget).style.background = 'var(--surface-hover)'}
-                                                    onMouseLeave={e => (e.currentTarget).style.background = 'transparent'}>
+                                                        className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium rounded-lg border transition-colors"
+                                                        style={{ color: 'var(--foreground)', borderColor: 'var(--border)' }}
+                                                        onMouseEnter={e => (e.currentTarget).style.background = 'var(--surface-hover)'}
+                                                        onMouseLeave={e => (e.currentTarget).style.background = 'transparent'}>
                                                     <X size={10} /> Decline
                                                 </button>
                                             </div>

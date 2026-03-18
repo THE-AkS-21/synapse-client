@@ -89,7 +89,8 @@ export default function ChatHistory({ roomId }: { roomId: string }) {
                 followOutput="smooth"
                 itemContent={(index, msg) => {
                     // FIXED: Checks by ID instead of username (handles old DB cache + new WebSockets perfectly)
-                    const isMe = msg.senderId === Number(user?.id) || msg.senderUsername === user?.username;
+                    const isMe = String(msg.senderId) === String(user?.id) ||
+                        msg.senderUsername === user?.username;
 
                     const isConsecutive = index > 0 &&
                         (roomMessages[index - 1].senderId === msg.senderId ||
