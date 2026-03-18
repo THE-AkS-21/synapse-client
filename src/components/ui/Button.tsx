@@ -19,12 +19,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 ref={ref}
                 disabled={isLoading || props.disabled}
                 className={cn(
-                    'inline-flex items-center justify-center rounded-xl font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50',
+                    'inline-flex items-center justify-center rounded-xl font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 disabled:pointer-events-none disabled:opacity-50',
                     {
-                        'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/20': variant === 'primary',
-                        'bg-zinc-800 text-zinc-100 hover:bg-zinc-700': variant === 'secondary',
-                        'hover:bg-zinc-800 text-zinc-300 hover:text-white': variant === 'ghost',
-                        'bg-red-500/10 text-red-500 hover:bg-red-500/20': variant === 'danger',
+                        'bg-brand text-white hover:bg-brand-hover shadow-lg shadow-brand/20': variant === 'primary',
+                        'bg-surface-elevated border border-border text-foreground hover:bg-surface-hover': variant === 'secondary',
+                        'hover:bg-surface-hover text-foreground/70 hover:text-foreground': variant === 'ghost',
+                        'bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20': variant === 'danger',
                         'h-9 px-4 text-sm': size === 'sm',
                         'h-11 px-6 text-base': size === 'md',
                         'h-14 px-8 text-lg font-semibold': size === 'lg',

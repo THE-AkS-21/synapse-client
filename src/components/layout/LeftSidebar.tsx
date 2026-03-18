@@ -33,7 +33,7 @@ function PortalWrapper({ children, isOpen, onClose }: { children: React.ReactNod
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-lg bg-surface border border-border rounded-3xl shadow-2xl overflow-hidden relative"
+                className="w-full max-w-lg glass rounded-3xl overflow-hidden relative"
             >
                 {children}
             </motion.div>
@@ -61,14 +61,12 @@ export default function LeftSidebar() {
     const [publicRooms, setPublicRooms] = useState<Room[]>([]);
     const [isLoadingRooms, setIsLoadingRooms] = useState(true);
 
-    // Grouping Rooms vs DMs separately
     const myRooms = rooms.filter(r => r.type !== 'DIRECT');
     const dmRooms = rooms.filter(r => r.type === 'DIRECT');
 
     const filteredMyRooms = myRooms.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
     const filteredDmRooms = dmRooms.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    // Filter public rooms to only show ones the user hasn't joined yet
     const discoverableRooms = publicRooms.filter(pr => !myRooms.some(mr => mr.id === pr.id));
 
     const handleLogout = async () => {
@@ -96,10 +94,9 @@ export default function LeftSidebar() {
         if (user?.username) {
             setIsLoadingRooms(true);
             fetchData();
-
-            // Automatic interval polling. Forces DMs and Nodes to update instantly for everyone connected
-            const pollInterval = setInterval(fetchData, 5000);
-            return () => clearInterval(pollInterval);
+            // CRITICAL FIX: Removed aggressive HTTP polling.
+            // WebSockets and manual user actions (joining/creating) will handle updates naturally,
+            // preventing the RateLimitFilter 429 Too Many Requests error.
         }
     }, [user, fetchData]);
 
@@ -144,6 +141,9 @@ export default function LeftSidebar() {
             useChatStore.getState().addRoom(data, user?.id);
             setActiveRoom(room.id);
             toast.success(`Joined #${room.name}!`);
+
+            // Re-fetch rooms locally to update 'Discoverable' lists
+            // without needing a global polling interval
             fetchData();
         } catch (err: any) {
             const msgData = err?.response?.data;
@@ -153,29 +153,27 @@ export default function LeftSidebar() {
 
     return (
         <>
-            <aside className="w-72 sm:w-80 lg:w-72 border-r flex flex-col h-full flex-shrink-0 transition-colors duration-300 relative z-10"
-                   style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--sidebar-border)' }}>
+            <aside className="w-72 sm:w-80 lg:w-72 border-r border-sidebar-border bg-sidebar-bg flex flex-col h-full flex-shrink-0 transition-colors duration-300 relative z-10">
 
-                <div className="h-16 flex items-center gap-3 px-5 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
+                <div className="h-16 flex items-center gap-3 px-5 border-b border-sidebar-border bg-surface flex-shrink-0">
                     <Image src="/synapse_logo.png" alt="Logo" width={28} height={28} />
                     <div className="flex-1">
                         <h2 className="font-heading font-bold text-sm text-brand">Synapse</h2>
-                        <p className="text-[10px] opacity-40">Connected</p>
+                        <p className="text-[10px] opacity-40 text-foreground">Connected</p>
                     </div>
                     <NotificationBell />
-                    <button onClick={closeSidebars} className="lg:hidden p-1"><X size={18}/></button>
+                    <button onClick={closeSidebars} className="lg:hidden p-1 text-foreground/50 hover:text-foreground"><X size={18}/></button>
                 </div>
 
-                <div className="px-4 py-4">
+                <div className="px-4 py-4 flex-shrink-0">
                     <div className="relative">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40" />
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" />
                         <input
                             type="text"
                             placeholder="Quick search..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl outline-none"
-                            style={{ background: 'var(--surface-hover)', color: 'var(--foreground)' }}
+                            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl outline-none bg-surface-hover text-foreground placeholder:text-foreground/40 border border-transparent focus:border-brand/30 transition-colors"
                         />
                     </div>
                 </div>
@@ -183,16 +181,16 @@ export default function LeftSidebar() {
                 <div className="flex-1 overflow-y-auto px-3 space-y-6 pb-4">
                     {/* My Channels */}
                     <div>
-                        <div className="flex items-center justify-between px-3 mb-2 text-[10px] font-bold uppercase tracking-widest opacity-40">
+                        <div className="flex items-center justify-between px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-foreground/40">
                             <span>My Channels</span>
                             <div className="flex gap-1">
-                                <button onClick={() => setIsJoinModalOpen(true)} className="p-1 hover:text-brand"><Search size={13}/></button>
-                                <button onClick={() => setIsCreateModalOpen(true)} className="p-1 hover:text-brand"><Plus size={13}/></button>
+                                <button onClick={() => setIsJoinModalOpen(true)} className="p-1 hover:text-brand transition-colors"><Search size={13}/></button>
+                                <button onClick={() => setIsCreateModalOpen(true)} className="p-1 hover:text-brand transition-colors"><Plus size={13}/></button>
                             </div>
                         </div>
                         <div className="space-y-1">
                             {filteredMyRooms.length === 0 && !isLoadingRooms && (
-                                <p className="text-xs px-3 opacity-40 italic">No channels joined.</p>
+                                <p className="text-xs px-3 text-foreground/40 italic">No channels joined.</p>
                             )}
                             {filteredMyRooms.map(room => (
                                 <RoomListItem key={room.id} id={room.id} name={room.name} type={room.type} isActive={activeRoomId === room.id} onClick={setActiveRoom} />
@@ -203,7 +201,7 @@ export default function LeftSidebar() {
                     {/* Direct Messages Section */}
                     {filteredDmRooms.length > 0 && (
                         <div>
-                            <div className="flex items-center justify-between px-3 mb-2 text-[10px] font-bold uppercase tracking-widest opacity-40">
+                            <div className="flex items-center justify-between px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-foreground/40">
                                 <span>Direct Messages</span>
                             </div>
                             <div className="space-y-1">
@@ -217,7 +215,7 @@ export default function LeftSidebar() {
                     {/* Discover Public Rooms */}
                     {discoverableRooms.length > 0 && (
                         <div>
-                            <div className="flex items-center justify-between px-3 mb-2 text-[10px] font-bold uppercase tracking-widest opacity-40">
+                            <div className="flex items-center justify-between px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-foreground/40">
                                 <span>Discover Rooms</span>
                             </div>
                             <div className="space-y-1">
@@ -225,7 +223,7 @@ export default function LeftSidebar() {
                                     <button
                                         key={room.id}
                                         onClick={() => handleJoinPublicRoom(room)}
-                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all hover:bg-surface-hover opacity-70 hover:opacity-100 group"
+                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all hover:bg-surface-hover text-foreground/70 hover:text-foreground group"
                                     >
                                         <div className="w-6 h-6 rounded-lg bg-surface-elevated border border-border flex items-center justify-center text-[10px] font-bold group-hover:bg-brand group-hover:text-white transition-colors">
                                             <Hash size={12} />
@@ -239,17 +237,17 @@ export default function LeftSidebar() {
                     )}
                 </div>
 
-                <div className="p-4 border-t" style={{ borderColor: 'var(--sidebar-border)', background: 'var(--surface)' }}>
+                <div className="p-4 border-t border-sidebar-border bg-surface flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer group" onClick={() => setIsProfileModalOpen(true)}>
                             <Avatar name={user?.username || 'U'} />
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold truncate group-hover:text-brand transition-colors">{user?.username || 'User'}</p>
-                                <p className="text-[10px] text-green-400 font-bold uppercase">Settings</p>
+                                <p className="text-sm font-bold truncate text-foreground group-hover:text-brand transition-colors">{user?.username || 'User'}</p>
+                                <p className="text-[10px] text-brand font-bold uppercase">Settings</p>
                             </div>
                         </div>
                         <ThemeToggle />
-                        <button onClick={handleLogout} className="p-2 text-red-400 hover:bg-red-400/10 rounded-xl transition-colors">
+                        <button onClick={handleLogout} className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors">
                             <LogOut size={16} />
                         </button>
                     </div>
@@ -260,11 +258,11 @@ export default function LeftSidebar() {
             <AnimatePresence>
                 {searchQuery.length >= 2 && userResults.length > 0 && (
                     <PortalWrapper isOpen={true} onClose={() => setSearchQuery('')}>
-                        <div className="p-4 border-b flex justify-between items-center bg-surface-hover/30">
-                            <h3 className="font-bold text-sm">People Search</h3>
-                            <button onClick={() => setSearchQuery('')} className="p-1 hover:bg-surface-elevated rounded-lg"><X size={16}/></button>
+                        <div className="p-4 border-b border-border flex justify-between items-center bg-surface-hover">
+                            <h3 className="font-bold text-sm text-foreground">People Search</h3>
+                            <button onClick={() => setSearchQuery('')} className="p-1 hover:bg-surface-elevated rounded-lg text-foreground/50 hover:text-foreground transition-colors"><X size={16}/></button>
                         </div>
-                        <div className="p-3 max-h-[60vh] overflow-y-auto space-y-2">
+                        <div className="p-3 max-h-[60vh] overflow-y-auto space-y-2 bg-surface">
                             {userResults.map(u => {
                                 let lastMsg = null;
                                 for (const rId in chatMessages) {
@@ -281,14 +279,13 @@ export default function LeftSidebar() {
                                         <div className="flex items-center gap-3 w-full">
                                             <Avatar name={u.username} size="sm" />
                                             <div className="text-left">
-                                                <p className="text-sm font-bold group-hover:text-brand transition-colors">{u.username}</p>
-                                                <p className="text-[10px] text-green-400 font-bold uppercase">Member</p>
+                                                <p className="text-sm font-bold text-foreground group-hover:text-brand transition-colors">{u.username}</p>
+                                                <p className="text-[10px] text-brand font-bold uppercase">Member</p>
                                             </div>
                                             <MessageCircle size={14} className="ml-auto opacity-0 group-hover:opacity-100 text-brand transition-opacity" />
                                         </div>
                                         {lastMsg && (
-                                            <div className="ml-11 mt-0.5 p-2.5 rounded-xl text-[12px] text-left opacity-80 italic truncate max-w-[85%]"
-                                                 style={{ background: 'var(--surface-elevated)', border: '1px solid var(--border)' }}>
+                                            <div className="ml-11 mt-0.5 p-2.5 rounded-xl text-[12px] text-left text-foreground/70 italic truncate max-w-[85%] bg-surface-elevated border border-border">
                                                 "{lastMsg}"
                                             </div>
                                         )}

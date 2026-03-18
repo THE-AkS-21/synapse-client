@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware'; // Import the persist middleware
 
 export interface Message {
     id: string;
@@ -22,7 +23,8 @@ export interface Room {
     type?: 'PUBLIC' | 'PRIVATE' | 'DIRECT';
     creatorId?: number;
     dmPartner?: string;
-    participants?: { id: number | string, username: string }[];
+    dmPartnerDisplayId?: string;
+    participants?: { id: number | string, username: string, displayId?: string }[];
 }
 
 interface ChatState {
@@ -48,48 +50,65 @@ const formatRoom = (room: Room, currentUserId?: string | number): Room => {
     if (room.type === 'DIRECT' && currentUserId && room.participants) {
         const partner = room.participants.find(p => String(p.id) !== String(currentUserId));
         const partnerName = partner ? partner.username : room.dmPartner || 'Unknown User';
-        return { ...room, dmPartner: partnerName, name: partnerName };
+        const partnerDisplayId = partner?.displayId || null;
+
+        return {
+            ...room,
+            dmPartner: partnerName,
+            name: partnerName,
+            dmPartnerDisplayId: partnerDisplayId
+        };
     }
     return room;
 };
 
-export const useChatStore = create<ChatState>((set) => ({
-    rooms: [],
-    activeRoomId: null,
-    messages: {},
-    onlineUsers: {},
-    typingUsers: {},
+// Wrap the store in the persist middleware
+export const useChatStore = create<ChatState>()(
+    persist(
+        (set) => ({
+            rooms: [],
+            activeRoomId: null,
+            messages: {},
+            onlineUsers: {},
+            typingUsers: {},
 
-    setRooms: (rooms, currentUserId) => set({
-        rooms: rooms.map(r => formatRoom(r, currentUserId))
-    }),
+            setRooms: (rooms, currentUserId) => set({
+                rooms: rooms.map(r => formatRoom(r, currentUserId))
+            }),
 
-    addRoom: (room, currentUserId) => set((state) => {
-        if (state.rooms.some(r => r.id === room.id)) return state;
-        return { rooms: [formatRoom(room, currentUserId), ...state.rooms] };
-    }),
+            addRoom: (room, currentUserId) => set((state) => {
+                if (state.rooms.some(r => r.id === room.id)) return state;
+                return { rooms: [formatRoom(room, currentUserId), ...state.rooms] };
+            }),
 
-    removeRoom: (roomId) => set((state) => ({
-        rooms: state.rooms.filter(r => r.id !== roomId),
-    })),
+            removeRoom: (roomId) => set((state) => ({
+                rooms: state.rooms.filter(r => r.id !== roomId),
+            })),
 
-    setActiveRoom: (roomId) => set({ activeRoomId: roomId }),
+            setActiveRoom: (roomId) => set({ activeRoomId: roomId }),
 
-    setMessages: (roomId, initialMessages) => set((state) => ({
-        messages: { ...state.messages, [roomId]: initialMessages }
-    })),
+            setMessages: (roomId, initialMessages) => set((state) => ({
+                messages: { ...state.messages, [roomId]: initialMessages }
+            })),
 
-    appendMessage: (roomId, message) => set((state) => {
-        const existing = state.messages[roomId] || [];
-        if (existing.some(m => m.id === message.id)) return state;
-        return { messages: { ...state.messages, [roomId]: [...existing, message] } };
-    }),
+            appendMessage: (roomId, message) => set((state) => {
+                const existing = state.messages[roomId] || [];
+                if (existing.some(m => m.id === message.id)) return state;
+                return { messages: { ...state.messages, [roomId]: [...existing, message] } };
+            }),
 
-    setOnlineUsers: (roomId, users) => set((state) => ({
-        onlineUsers: { ...state.onlineUsers, [roomId]: users }
-    })),
+            setOnlineUsers: (roomId, users) => set((state) => ({
+                onlineUsers: { ...state.onlineUsers, [roomId]: users }
+            })),
 
-    setTypingUsers: (roomId, users) => set((state) => ({
-        typingUsers: { ...state.typingUsers, [roomId]: users }
-    })),
-}));
+            setTypingUsers: (roomId, users) => set((state) => ({
+                typingUsers: { ...state.typingUsers, [roomId]: users }
+            })),
+        }),
+        {
+            name: 'chat-storage', // Key used in localStorage
+            // CRITICAL: Only persist the activeRoomId. Do NOT persist messages or online users to save memory.
+            partialize: (state) => ({ activeRoomId: state.activeRoomId }),
+        }
+    )
+);

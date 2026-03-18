@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '@/services/api';
 
 import { useAuthStore } from '@/store/authStore';
@@ -23,6 +24,7 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
     const setAuth = useAuthStore(state => state.setAuth);
     const token = useAuthStore(state => state.token);
 
+    const [mounted, setMounted] = useState(false);
     const [tab, setTab] = useState<Tab>('profile');
     const [displayId, setDisplayId] = useState<string | null>(null);
     const [newUsername, setNewUsername] = useState(user?.username || '');
@@ -31,7 +33,8 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
     const [isLoadingUsername, setIsLoadingUsername] = useState(false);
     const [isLoadingPassword, setIsLoadingPassword] = useState(false);
 
-    // Always refetch displayId whenever the modal opens
+    useEffect(() => { setMounted(true); }, []);
+
     useEffect(() => {
         if (!isOpen) return;
         api.get('/api/v1/users/me')
@@ -45,7 +48,6 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
         setIsLoadingUsername(true);
         try {
             await api.put('/api/v1/users/me/username', { username: newUsername.trim() });
-            // Update local auth store
             if (user && token) {
                 setAuth({ ...user, username: newUsername.trim() }, token);
             }
@@ -55,9 +57,8 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
             const data = err.response?.data;
             let errorMessage = 'Failed to update username.';
 
-            // Safely extract the error message
             if (Array.isArray(data) && data.length > 0) {
-                errorMessage = data[0]; // Extracts "Username already taken" from the array
+                errorMessage = data[0];
             } else if (typeof data === 'string') {
                 errorMessage = data;
             } else if (data?.message) {
@@ -99,12 +100,12 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
         }
     };
 
-    if (!user) return null;
+    if (!user || !mounted) return null;
 
-    return (
+    const modalContent = (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -115,35 +116,31 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
                         {/* Header */}
                         <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface-hover">
                             <h2 className="text-base font-semibold text-foreground">My Profile</h2>
-                            <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-500 hover:text-foreground hover:bg-surface-elevated transition-colors">
+                            <button onClick={onClose} className="p-1.5 rounded-lg text-foreground/50 hover:text-foreground hover:bg-surface-elevated transition-colors">
                                 <X size={18} />
                             </button>
                         </div>
 
                         {/* Avatar + identity */}
-                        <div className="px-6 pt-6 pb-4 border-b flex flex-col items-center text-center"
-                            style={{ borderColor: 'var(--border)', background: 'var(--surface-elevated)' }}>
+                        <div className="px-6 pt-6 pb-4 border-b border-border flex flex-col items-center text-center bg-surface-elevated">
                             <Avatar name={user.username} size="lg" />
-                            <h3 className="mt-3 text-lg font-heading font-semibold" style={{ color: 'var(--foreground)' }}>{user.username}</h3>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--foreground)', opacity: 0.45 }}>{user.email}</p>
+                            <h3 className="mt-3 text-lg font-heading font-semibold text-foreground">{user.username}</h3>
+                            <p className="text-xs mt-0.5 text-foreground/50">{user.email}</p>
 
-                            {/* User Display ID — only visible to self */}
+                            {/* User Display ID */}
                             {displayId && (
                                 <div className="mt-3 w-full max-w-xs">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'var(--foreground)', opacity: 0.35 }}>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest mb-1.5 text-foreground/40">
                                         <Fingerprint size={9} className="inline mr-1" />Your User ID
                                     </p>
                                     <button
                                         onClick={() => { navigator.clipboard.writeText(displayId); toast.success('User ID copied!', { icon: '📋' }); }}
-                                        className="flex items-center justify-between gap-2 w-full px-3 py-2 rounded-xl border font-mono text-sm transition-all group"
-                                        style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-hover)'}
-                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
+                                        className="flex items-center justify-between gap-2 w-full px-3 py-2 rounded-xl border border-border bg-surface font-mono text-sm transition-all group hover:border-border-hover text-foreground"
                                     >
                                         <span>{displayId}</span>
-                                        <Copy size={12} style={{ color: 'var(--brand)', opacity: 0.7 }} />
+                                        <Copy size={12} className="text-brand opacity-70 group-hover:opacity-100 transition-opacity" />
                                     </button>
-                                    <p className="text-[10px] mt-1" style={{ color: 'var(--foreground)', opacity: 0.35 }}>
+                                    <p className="text-[10px] mt-1 text-foreground/40">
                                         Share this ID for room invitations or DMs
                                     </p>
                                 </div>
@@ -151,15 +148,15 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
                         </div>
 
                         {/* Tabs */}
-                        <div className="flex border-b border-border">
+                        <div className="flex border-b border-border bg-surface">
                             {(['profile', 'password'] as Tab[]).map((t) => (
                                 <button
                                     key={t}
                                     onClick={() => setTab(t)}
                                     className={`flex-1 py-2.5 text-sm font-medium transition-colors ${tab === t
-                                        ? 'text-brand border-b-2 border-brand'
-                                        : 'text-zinc-500 hover:text-foreground'
-                                        }`}
+                                        ? 'text-brand border-b-2 border-brand bg-brand/5'
+                                        : 'text-foreground/60 hover:text-foreground hover:bg-surface-hover'
+                                    }`}
                                 >
                                     {t === 'profile' ? 'Update Username' : 'Change Password'}
                                 </button>
@@ -167,11 +164,11 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
                         </div>
 
                         {/* Tab content */}
-                        <div className="p-5">
+                        <div className="p-5 bg-surface">
                             {tab === 'profile' && (
                                 <form onSubmit={handleUpdateUsername} className="space-y-4">
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">New Username</label>
+                                        <label className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">New Username</label>
                                         <Input
                                             type="text"
                                             placeholder="Enter new username"
@@ -181,12 +178,12 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
                                             required
                                             minLength={3}
                                         />
-                                        <p className="text-xs text-zinc-500">Must be at least 3 characters.</p>
+                                        <p className="text-xs text-foreground/50">Must be at least 3 characters.</p>
                                     </div>
                                     <div className="flex justify-end gap-3 pt-1">
                                         <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
                                         <Button type="submit" isLoading={isLoadingUsername}
-                                            disabled={!newUsername.trim() || newUsername === user.username || newUsername.length < 3}>
+                                                disabled={!newUsername.trim() || newUsername === user.username || newUsername.length < 3}>
                                             <CheckCircle2 size={14} className="mr-1" />
                                             Save Username
                                         </Button>
@@ -197,22 +194,22 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
                             {tab === 'password' && (
                                 <form onSubmit={handleUpdatePassword} className="space-y-4">
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Current Password</label>
+                                        <label className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">Current Password</label>
                                         <Input type="password" placeholder="Enter your current password"
-                                            value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
-                                            icon={<Lock size={16} />} required />
+                                               value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
+                                               icon={<Lock size={16} />} required />
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">New Password</label>
+                                        <label className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">New Password</label>
                                         <Input type="password" placeholder="Enter a new password"
-                                            value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                                            icon={<KeyRound size={16} />} required />
-                                        <p className="text-xs text-zinc-500">Must be at least 6 characters.</p>
+                                               value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                                               icon={<KeyRound size={16} />} required />
+                                        <p className="text-xs text-foreground/50">Must be at least 6 characters.</p>
                                     </div>
                                     <div className="flex justify-end gap-3 pt-1">
                                         <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
                                         <Button type="submit" isLoading={isLoadingPassword}
-                                            disabled={!currentPassword || !newPassword || newPassword.length < 6}>
+                                                disabled={!currentPassword || !newPassword || newPassword.length < 6}>
                                             Save Password
                                         </Button>
                                     </div>
@@ -224,4 +221,6 @@ export default function UserProfileModal({ isOpen, onClose }: Props) {
             )}
         </AnimatePresence>
     );
+
+    return createPortal(modalContent, document.body);
 }

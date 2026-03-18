@@ -26,16 +26,6 @@ export default function ChatInput({ roomId }: { roomId: string }) {
         }
     };
 
-    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-        e.currentTarget.style.borderColor = 'var(--brand)';
-        e.currentTarget.style.boxShadow = '0 0 0 2px rgba(74,222,128,0.15)';
-    };
-
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        e.currentTarget.style.borderColor = 'var(--border)';
-        e.currentTarget.style.boxShadow = 'none';
-    };
-
     const canSend = text.trim().length > 0;
 
     return (
@@ -46,15 +36,8 @@ export default function ChatInput({ roomId }: { roomId: string }) {
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    onFocus={handleFocus}
-                    onBlur={handleBlur}
                     placeholder="Message room..."
-                    className="w-full border rounded-2xl pl-5 pr-14 py-3.5 text-sm focus-visible:outline-none transition-all duration-200"
-                    style={{
-                        background: 'var(--surface-elevated)',
-                        borderColor: 'var(--border)',
-                        color: 'var(--foreground)',
-                    }}
+                    className="w-full border border-border bg-surface-elevated text-foreground rounded-2xl pl-5 pr-14 py-3.5 text-sm outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-200"
                 />
 
                 <AnimatePresence>
@@ -66,8 +49,7 @@ export default function ChatInput({ roomId }: { roomId: string }) {
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.7, opacity: 0 }}
                             transition={{ duration: 0.15, ease: 'easeOut' }}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-xl text-white transition-all shadow-lg active:scale-95 hover:brightness-110"
-                            style={{ background: 'var(--brand)' }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-xl text-white bg-brand transition-all shadow-lg active:scale-95 hover:brightness-110"
                         >
                             <SendHorizontal size={18} />
                         </motion.button>
