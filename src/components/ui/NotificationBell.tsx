@@ -23,7 +23,7 @@ export default function NotificationBell() {
     const [invitations, setInvitations] = useState<Invitation[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isFetching, setIsFetching] = useState(false);
-    const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
+    const [panelStyle, setPanelStyle] = useState({ top: 0, left: 0, width: 320 });
     const [mounted, setMounted] = useState(false);
     const bellRef = useRef<HTMLButtonElement>(null);
 
@@ -51,12 +51,35 @@ export default function NotificationBell() {
         return () => clearInterval(interval);
     }, []);
 
-    const openPanel = () => {
-        if (bellRef.current) {
-            const rect = bellRef.current.getBoundingClientRect();
-            // Position to the right of bell if near left edge, else left-align
-            setPanelPos({ top: rect.bottom + 8, left: Math.max(8, rect.left) });
+    // Dynamically calculate position to prevent mobile overflow
+    const calculatePosition = () => {
+        if (!bellRef.current) return;
+
+        const rect = bellRef.current.getBoundingClientRect();
+        const screenWidth = window.innerWidth;
+
+        // Max width of 320px, but shrink it on tiny screens to maintain 16px margins
+        const width = Math.min(320, screenWidth - 32);
+
+        let left = rect.left;
+
+        // If the panel overflows the right edge, shift it leftwards
+        if (left + width > screenWidth - 16) {
+            left = screenWidth - width - 16;
         }
+
+        // Ensure it never overflows the left edge
+        left = Math.max(16, left);
+
+        setPanelStyle({
+            top: rect.bottom + 8,
+            left: left,
+            width: width
+        });
+    };
+
+    const openPanel = () => {
+        calculatePosition();
         setIsOpen(v => !v);
         if (!isOpen) fetchPending();
     };
@@ -75,9 +98,16 @@ export default function NotificationBell() {
         return () => document.removeEventListener('mousedown', handle);
     }, [isOpen]);
 
+    // Recalculate on screen resize/orientation change while open
+    useEffect(() => {
+        if (isOpen) {
+            window.addEventListener('resize', calculatePosition);
+            return () => window.removeEventListener('resize', calculatePosition);
+        }
+    }, [isOpen]);
+
     const handleAccept = async (inv: Invitation) => {
         try {
-            // Use Centralized Service
             await InvitationService.accept(inv.id);
             const roomsData = await RoomService.getUserRooms();
 
@@ -93,7 +123,6 @@ export default function NotificationBell() {
 
     const handleDecline = async (inv: Invitation) => {
         try {
-            // Use Centralized Service
             await InvitationService.decline(inv.id);
             setInvitations(prev => prev.filter(i => i.id !== inv.id));
             toast.success('Invitation declined.');
@@ -137,10 +166,10 @@ export default function NotificationBell() {
                     id="notification-panel-root"
                     style={{
                         position: 'fixed',
-                        top: panelPos.top,
-                        left: panelPos.left,
+                        top: panelStyle.top,
+                        left: panelStyle.left,
+                        width: panelStyle.width,
                         zIndex: 99999,
-                        width: 320,
                         pointerEvents: 'auto',
                     }}
                 >
