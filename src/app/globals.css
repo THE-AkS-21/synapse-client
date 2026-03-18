@@ -1,42 +1,68 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------ */
+/* DESIGN TOKENS (Tailwind Theme Bridge) */
+/* ------------------------------------------------ */
+
 @theme inline {
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
   --color-brand-light: var(--brand-light);
+
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
   --color-surface-elevated: var(--surface-elevated);
+
   --color-border: var(--border);
   --color-border-hover: var(--border-hover);
+
   --font-sans: var(--font-inter), sans-serif;
   --font-heading: var(--font-outfit), sans-serif;
 }
 
-/* ─── Light Mode ─── */
+
+
+/* ------------------------------------------------ */
+/* LIGHT THEME */
+/* ------------------------------------------------ */
+
 :root {
+
+  /* Base */
   --background: #f0f4f1;
   --foreground: #111b14;
 
+  /* Brand */
   --brand: #16a34a;
   --brand-hover: #15803d;
   --brand-light: #dcfce7;
 
+  /* Surfaces */
   --surface: #ffffff;
   --surface-hover: #e2ece4;
   --surface-elevated: #eaf2ec;
 
+  /* Borders */
   --border: #cad7cc;
   --border-hover: #94b09a;
 
+  /* Sidebar */
   --sidebar-bg: #e8f0ea;
   --sidebar-border: #cad7cc;
 }
 
-/* ─── Dark Mode (neutral dark grey — no green tint) ─── */
+
+
+/* ------------------------------------------------ */
+/* DARK THEME */
+/* ------------------------------------------------ */
+
 .dark {
+
   --background: #1c1c1e;
   --foreground: #e8f5eb;
 
@@ -55,18 +81,34 @@
   --sidebar-border: rgba(74, 222, 128, 0.08);
 }
 
-/* ─── Glassmorphism ─── */
+
+
+/* ------------------------------------------------ */
+/* UTILITIES */
+/* ------------------------------------------------ */
+
+/* Glassmorphism surface */
+
 @utility glass {
+
   background: var(--surface);
+
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+
   border: 1px solid var(--border);
+
 }
 
-/* ─── Scrollbar ─── */
+
+
+/* ------------------------------------------------ */
+/* SCROLLBAR */
+/* ------------------------------------------------ */
+
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -74,33 +116,66 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(74, 222, 128, 0.2);
-  border-radius: 10px;
+
+  background: rgba(74, 222, 128, 0.25);
+  border-radius: 999px;
+
+  transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.45);
 }
 
-/* ─── Base ─── */
+
+
+/* ------------------------------------------------ */
+/* BASE LAYER */
+/* ------------------------------------------------ */
+
 body {
+
   background: var(--background);
   color: var(--foreground);
+
   -webkit-font-smoothing: antialiased;
+
   min-height: 100vh;
   margin: 0;
+
   display: flex;
   flex-direction: column;
+
+  font-family: var(--font-sans);
+
 }
 
-/* ─── Animated gradient bg for login/register ─── */
+
+
+/* ------------------------------------------------ */
+/* ANIMATED AUTH BACKGROUND */
+/* ------------------------------------------------ */
+
 .animated-bg {
-  background: linear-gradient(-45deg, #111113, #1a1a1e, #181820, #111113);
+
+  background: linear-gradient(
+          -45deg,
+          #111113,
+          #1a1a1e,
+          #181820,
+          #111113
+  );
+
   background-size: 400% 400%;
-  animation: gradientBG 15s ease infinite;
+
+  animation: gradientBG 16s ease infinite;
+
 }
+
+
 
 @keyframes gradientBG {
+
   0% {
     background-position: 0% 50%;
   }
@@ -112,11 +187,29 @@ body {
   100% {
     background-position: 0% 50%;
   }
+
 }
 
-/* ─── Online pill ─── */
+
+
+/* ------------------------------------------------ */
+/* STATUS BADGES */
+/* ------------------------------------------------ */
+
 .pill-online {
+
+  display: inline-flex;
+  align-items: center;
+
+  padding: 2px 8px;
+  border-radius: 999px;
+
   background: rgba(74, 222, 128, 0.12);
   color: #4ade80;
+
   border: 1px solid rgba(74, 222, 128, 0.25);
+
+  font-size: 12px;
+  font-weight: 500;
+
 }

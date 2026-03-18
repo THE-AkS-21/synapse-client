@@ -30,7 +30,6 @@ export default function NotificationBell() {
     const { setRooms, setActiveRoom } = useChatStore();
     const currentUser = useAuthStore(state => state.user);
 
-    // Only render portal after hydration
     useEffect(() => { setMounted(true); }, []);
 
     const fetchPending = async () => {
@@ -51,31 +50,17 @@ export default function NotificationBell() {
         return () => clearInterval(interval);
     }, []);
 
-    // Dynamically calculate position to prevent mobile overflow
     const calculatePosition = () => {
         if (!bellRef.current) return;
-
         const rect = bellRef.current.getBoundingClientRect();
         const screenWidth = window.innerWidth;
-
-        // Max width of 320px, but shrink it on tiny screens to maintain 16px margins
         const width = Math.min(320, screenWidth - 32);
-
         let left = rect.left;
 
-        // If the panel overflows the right edge, shift it leftwards
-        if (left + width > screenWidth - 16) {
-            left = screenWidth - width - 16;
-        }
-
-        // Ensure it never overflows the left edge
+        if (left + width > screenWidth - 16) left = screenWidth - width - 16;
         left = Math.max(16, left);
 
-        setPanelStyle({
-            top: rect.bottom + 8,
-            left: left,
-            width: width
-        });
+        setPanelStyle({ top: rect.bottom + 8, left: left, width: width });
     };
 
     const openPanel = () => {
@@ -84,7 +69,6 @@ export default function NotificationBell() {
         if (!isOpen) fetchPending();
     };
 
-    // Close on outside click
     useEffect(() => {
         if (!isOpen) return;
         const handle = (e: MouseEvent) => {
@@ -98,7 +82,6 @@ export default function NotificationBell() {
         return () => document.removeEventListener('mousedown', handle);
     }, [isOpen]);
 
-    // Recalculate on screen resize/orientation change while open
     useEffect(() => {
         if (isOpen) {
             window.addEventListener('resize', calculatePosition);
@@ -116,6 +99,9 @@ export default function NotificationBell() {
             if (inv.type === 'ROOM' && inv.roomId) setActiveRoom(inv.roomId);
             toast.success(inv.type === 'ROOM' ? `Joined #${inv.roomName}!` : `DM accepted!`);
             setInvitations(prev => prev.filter(i => i.id !== inv.id));
+
+            // CRITICAL FIX: Close panel automatically on accept
+            setIsOpen(false);
         } catch {
             toast.error('Could not accept invitation.');
         }
@@ -126,6 +112,9 @@ export default function NotificationBell() {
             await InvitationService.decline(inv.id);
             setInvitations(prev => prev.filter(i => i.id !== inv.id));
             toast.success('Invitation declined.');
+
+            // CRITICAL FIX: Close panel automatically on decline
+            setIsOpen(false);
         } catch {
             toast.error('Could not decline invitation.');
         }

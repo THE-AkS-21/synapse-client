@@ -25,8 +25,6 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
     const panelRef = useRef<HTMLDivElement>(null);
 
     const isDM = room.type === 'DIRECT';
-
-    // For DMs, show the partner's displayId and username
     const displayId = isDM ? (room as any).dmPartnerDisplayId || room.id : room.id;
     const displayName = isDM ? `@${room.dmPartner}` : room.name;
 
@@ -53,6 +51,8 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
         setIsClearing(true);
         try {
             await api.delete(`/api/v1/rooms/${room.id}/messages`);
+            // CRITICAL FIX: Instantly clear the messages in React state to avoid needing a refresh
+            useChatStore.getState().setMessages(room.id, []);
             toast.success('All messages cleared.');
             onClose();
         } catch (err: any) {
@@ -87,7 +87,6 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
         if (!id) return;
         setIsInviting(true);
         try {
-            // CRITICAL FIX: Using the correct endpoint structure expected by InvitationController
             await api.post(`/api/v1/invitations/room/${room.id}/invite`, null, {
                 params: { targetDisplayId: id }
             });
@@ -112,6 +111,7 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
             className="absolute top-16 left-0 z-50 w-80 rounded-2xl shadow-2xl border overflow-hidden"
             style={{ background: 'var(--surface-elevated)', borderColor: 'var(--border)' }}
         >
+            {/* Same UI structure as before... */}
             <div className="flex items-center justify-between px-4 py-3 border-b"
                  style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
                 <div className="flex items-center gap-2">
