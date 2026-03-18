@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Check, X, MessageCircle, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '@/services/api';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
+import { InvitationService } from '@/services/invitation.service';
+import { RoomService } from '@/services/room.service';
 import toast from 'react-hot-toast';
 
 interface Invitation {
@@ -27,7 +28,7 @@ export default function NotificationBell() {
     const bellRef = useRef<HTMLButtonElement>(null);
 
     const { setRooms, setActiveRoom } = useChatStore();
-    const currentUser = useAuthStore(state => state.user); // Fetched to properly format newly accepted DMs
+    const currentUser = useAuthStore(state => state.user);
 
     // Only render portal after hydration
     useEffect(() => { setMounted(true); }, []);
@@ -35,8 +36,8 @@ export default function NotificationBell() {
     const fetchPending = async () => {
         try {
             setIsFetching(true);
-            const res = await api.get('/api/v1/invitations/pending');
-            setInvitations(res.data || []);
+            const data = await InvitationService.getPending();
+            setInvitations(data || []);
         } catch {
             // silently ignore
         } finally {
@@ -76,11 +77,11 @@ export default function NotificationBell() {
 
     const handleAccept = async (inv: Invitation) => {
         try {
-            await api.put(`/api/v1/invitations/${inv.id}/accept`);
-            const roomsRes = await api.get('/api/v1/rooms/user');
+            // Use Centralized Service
+            await InvitationService.accept(inv.id);
+            const roomsData = await RoomService.getUserRooms();
 
-            // Pass currentUser?.id to format the partner's name correctly in the store
-            setRooms(roomsRes.data, currentUser?.id);
+            setRooms(roomsData, currentUser?.id);
 
             if (inv.type === 'ROOM' && inv.roomId) setActiveRoom(inv.roomId);
             toast.success(inv.type === 'ROOM' ? `Joined #${inv.roomName}!` : `DM accepted!`);
@@ -92,7 +93,8 @@ export default function NotificationBell() {
 
     const handleDecline = async (inv: Invitation) => {
         try {
-            await api.put(`/api/v1/invitations/${inv.id}/decline`);
+            // Use Centralized Service
+            await InvitationService.decline(inv.id);
             setInvitations(prev => prev.filter(i => i.id !== inv.id));
             toast.success('Invitation declined.');
         } catch {
@@ -130,7 +132,6 @@ export default function NotificationBell() {
                 </AnimatePresence>
             </button>
 
-            {/* Portal — rendered directly in body to escape overflow-hidden constraints */}
             {mounted && isOpen && createPortal(
                 <div
                     id="notification-panel-root"
@@ -154,7 +155,6 @@ export default function NotificationBell() {
                             boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
                         }}
                     >
-                        {/* Header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b"
                              style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
                             <div className="flex items-center gap-2">
@@ -173,7 +173,6 @@ export default function NotificationBell() {
                             </button>
                         </div>
 
-                        {/* List */}
                         <div className="max-h-80 overflow-y-auto">
                             {isFetching && invitations.length === 0 ? (
                                 <div className="flex items-center justify-center py-10">

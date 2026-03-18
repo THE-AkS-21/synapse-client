@@ -2,16 +2,17 @@
 
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
+import { useUiStore } from '@/store/uiStore';
+import { RoomService } from '@/services/room.service';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { Info, UserMinus, MessageCircle, Shield } from 'lucide-react';
-import { api } from '@/services/api';
+import { UserMinus, MessageCircle, Shield, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect, useState, useMemo } from "react";
 
 export default function RightSidebar() {
     const { activeRoomId, onlineUsers, rooms, addRoom, setActiveRoom } = useChatStore();
     const currentUser = useAuthStore(state => state.user);
+    const { closeSidebars } = useUiStore();
 
     // Memoize to prevent unnecessary re-renders when other rooms update
     const currentOnlineUsers = useMemo(() =>
@@ -29,8 +30,8 @@ export default function RightSidebar() {
             return;
         }
 
-        api.get(`/api/v1/rooms/${activeRoomId}/participants`)
-            .then(res => setAllMembers(res.data))
+        RoomService.getRoomParticipants(activeRoomId)
+            .then(data => setAllMembers(data))
             .catch(() => {
                 toast.error("Could not load room members.");
                 setAllMembers([]);
@@ -40,7 +41,7 @@ export default function RightSidebar() {
     const handleRemoveMember = async (userId: string, username: string) => {
         if (!activeRoomId || !confirm(`Remove @${username} from this room?`)) return;
         try {
-            await api.delete(`/api/v1/rooms/${activeRoomId}/participants/${userId}`);
+            await RoomService.removeParticipant(activeRoomId, userId);
             toast.success(`@${username} removed.`);
             setAllMembers(prev => prev.filter(m => String(m.id) !== String(userId)));
         } catch {
@@ -50,17 +51,19 @@ export default function RightSidebar() {
 
     const handleStartDM = async (partnerId: string, partnerUsername: string) => {
         const existing = rooms.find(r => r.type === 'DIRECT' && r.dmPartner === partnerUsername);
-        if (existing) return setActiveRoom(existing.id);
+        if (existing) {
+            setActiveRoom(existing.id);
+            closeSidebars();
+            return;
+        }
 
         try {
-            const res = await api.post('/api/v1/rooms/direct', {
-                user1Id: Number(currentUser?.id),
-                user2Id: Number(partnerId),
-            });
-            const newRoom = { ...res.data, type: 'DIRECT' as const, dmPartner: partnerUsername };
+            const data = await RoomService.startDirectMessage(Number(currentUser?.id), Number(partnerId));
+            const newRoom = { ...data, type: 'DIRECT' as const, dmPartner: partnerUsername };
             addRoom(newRoom, currentUser?.id);
             setActiveRoom(newRoom.id);
             toast.success(`DM with @${partnerUsername} opened!`);
+            closeSidebars();
         } catch {
             toast.error('Failed to open DM.');
         }
@@ -70,29 +73,33 @@ export default function RightSidebar() {
     const itemVariants = { hidden: { opacity: 0, x: 16 }, visible: { opacity: 1, x: 0 } };
 
     return (
-        <aside className="w-60 flex flex-col h-full flex-shrink-0 relative overflow-hidden border-l"
+        <aside className="w-72 sm:w-80 lg:w-60 flex flex-col h-full flex-shrink-0 relative overflow-hidden border-l"
                style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--sidebar-border)' }}>
 
             {/* Header & Status */}
             <div className="h-16 flex items-center justify-between px-5 border-b backdrop-blur-md relative z-10"
                  style={{ borderColor: 'var(--sidebar-border)', background: 'var(--surface)' }}>
                 <h3 className="font-heading font-semibold text-sm">Room Members</h3>
-                <span className="flex items-center gap-1 text-xs font-medium text-green-400">
-                    <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-green-400" />
-                    {currentOnlineUsers.length} Online
-                </span>
+                <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1 text-xs font-medium text-green-400">
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-green-400" />
+                        {currentOnlineUsers.length} Online
+                    </span>
+                    <button onClick={closeSidebars} className="lg:hidden p-1 text-zinc-400 hover:text-white"><X size={18}/></button>
+                </div>
             </div>
 
             {/* Member List */}
             <div className="flex-1 overflow-y-auto py-4 px-3 relative z-10">
                 <motion.ul variants={containerVariants} initial="hidden" animate="visible" className="space-y-1">
                     {allMembers.map((u) => {
-                        // Flawless status matching against live WS state
                         const isMe = u.username === currentUser?.username;
+                        const isAdmin = room?.creatorId === Number(u.id);
+
+                        // Flawless status matching against live WS state
                         const isOnline = isMe || currentOnlineUsers.some(ou =>
                             String(ou.id) === String(u.id) || ou.username === u.username
                         );
-                        const isAdmin = room?.creatorId === Number(u.id);
 
                         return (
                             <motion.li variants={itemVariants} key={u.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl group hover:bg-zinc-800/40 transition-all duration-150">

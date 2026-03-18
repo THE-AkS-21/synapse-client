@@ -3,8 +3,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore, Room } from '@/store/chatStore';
+import { useUiStore } from '@/store/uiStore';
+import { RoomService } from '@/services/room.service';
+import { UserService } from '@/services/user.service';
 import { api } from '@/services/api';
-import { Plus, LogOut, Search, MessageSquare, MessageCircle, Globe, Users } from 'lucide-react';
+import { Plus, LogOut, Search, MessageSquare, MessageCircle, Users, X } from 'lucide-react';
 import CreateRoomModal from '@/components/modals/CreateRoomModal';
 import JoinRoomModal from '@/components/modals/JoinRoomModal';
 import UserProfileModal from '@/components/modals/UserProfileModal';
@@ -90,6 +93,7 @@ export default function LeftSidebar() {
     const addRoom = useChatStore(state => state.addRoom);
     const activeRoomId = useChatStore(state => state.activeRoomId);
     const setActiveRoom = useChatStore(state => state.setActiveRoom);
+    const { closeSidebars } = useUiStore();
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -99,33 +103,27 @@ export default function LeftSidebar() {
     const [publicRooms, setPublicRooms] = useState<Room[]>([]);
     const [pendingJoin, setPendingJoin] = useState<Room | null>(null);
 
-    // FIXED: Unified Search States
     const [searchQuery, setSearchQuery] = useState('');
     const [userResults, setUserResults] = useState<any[]>([]);
 
     const myRooms = rooms.filter(r => r.type !== 'DIRECT');
     const dmRooms = rooms.filter(r => r.type === 'DIRECT');
-    const myRoomIds = new Set(rooms.map(r => r.id));
-    const discoverRooms = publicRooms.filter(r => !myRoomIds.has(r.id));
 
     // Search filters
     const filteredMyRooms = myRooms.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
     const filteredDmRooms = dmRooms.filter(r => (r.dmPartner || r.name).toLowerCase().includes(searchQuery.toLowerCase()));
 
-
     const fetchMyRooms = useCallback(async () => {
         try {
-            const res = await api.get('/api/v1/rooms/user');
-            setRooms(res.data);
+            const data = await RoomService.getUserRooms();
+            setRooms(data, user?.id);
         } catch (err) { console.error(err); } finally { setIsLoadingRooms(false); }
-    }, [setRooms]);
+    }, [setRooms, user?.id]);
 
     const fetchPublicRooms = useCallback(async () => {
         try {
-            // FIXED: Removed ?size=50 to match backend endpoint properly
-            const res = await api.get('/api/v1/rooms/public');
-            const content: Room[] = res.data?.content ?? res.data;
-            setPublicRooms(content.filter((r: Room) => r.type === 'PUBLIC'));
+            const data = await RoomService.getPublicRooms();
+            setPublicRooms(data.filter((r: Room) => r.type === 'PUBLIC'));
         } catch (err) {
             console.error("Failed to fetch public rooms:", err);
         }
@@ -137,17 +135,15 @@ export default function LeftSidebar() {
         fetchPublicRooms();
     }, [user, fetchMyRooms, fetchPublicRooms]);
 
-    // FIXED: Unified User Search Hook
     useEffect(() => {
         if (searchQuery.trim().length < 2) {
             setUserResults([]);
             return;
         }
         const delayDebounceFn = setTimeout(() => {
-            api.get(`/api/v1/users/search?query=${encodeURIComponent(searchQuery)}`)
-                .then(res => {
-                    // Filter out self from search results
-                    setUserResults(res.data.filter((u: any) => u.username !== user?.username));
+            UserService.searchUsers(searchQuery)
+                .then(data => {
+                    setUserResults(data.filter((u: any) => u.username !== user?.username));
                 })
                 .catch(console.error);
         }, 300);
@@ -156,44 +152,43 @@ export default function LeftSidebar() {
 
     const handleLogout = async () => {
         try {
-            await api.post('/api/auth/logout'); // Tell backend to broadcast offline status
+            await api.post('/api/auth/logout');
         } catch (e) {
             console.error("Logout broadcast failed", e);
         } finally {
-            logout(); // Clear Zustand state and redirect
+            logout();
         }
     };
 
     const handleJoinPublicRoom = async (room: Room) => {
         try {
-            const res = await api.post(`/api/v1/rooms/${room.id}/join`);
-            addRoom(res.data);
+            const data = await RoomService.joinPublicRoom(room.id);
+            addRoom(data, user?.id);
             setActiveRoom(room.id);
             toast.success(`Joined #${room.name}!`);
             fetchPublicRooms();
+            closeSidebars();
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Failed to join room.');
         }
     };
 
-    // FIXED: Start DM from Search
     const handleStartDM = async (partnerId: string, partnerUsername: string) => {
         const existing = rooms.find(r => r.type === 'DIRECT' && r.dmPartner === partnerUsername);
         if (existing) {
             setActiveRoom(existing.id);
             setSearchQuery('');
+            closeSidebars();
             return;
         }
         try {
-            const res = await api.post('/api/v1/rooms/direct', {
-                user1Id: Number(user?.id),
-                user2Id: Number(partnerId),
-            });
-            const newRoom = { ...res.data, type: 'DIRECT' as const, dmPartner: partnerUsername };
-            addRoom(newRoom);
+            const data = await RoomService.startDirectMessage(Number(user?.id), Number(partnerId));
+            const newRoom = { ...data, type: 'DIRECT' as const, dmPartner: partnerUsername };
+            addRoom(newRoom, user?.id);
             setActiveRoom(newRoom.id);
             setSearchQuery('');
             toast.success(`DM with @${partnerUsername} opened!`);
+            closeSidebars();
         } catch {
             toast.error('Failed to open DM.');
         }
@@ -205,7 +200,7 @@ export default function LeftSidebar() {
 
     return (
         <>
-            <aside className="w-72 border-r flex flex-col h-full flex-shrink-0 transition-colors duration-300 relative" style={sidebarStyle}>
+            <aside className="w-72 sm:w-80 lg:w-72 border-r flex flex-col h-full flex-shrink-0 transition-colors duration-300 relative" style={sidebarStyle}>
                 <div className="absolute top-0 left-0 w-48 h-48 rounded-full blur-3xl pointer-events-none -translate-x-1/2 -translate-y-1/2" style={{ background: 'var(--brand)', opacity: 0.07 }} />
 
                 <div className="h-16 flex items-center gap-3 px-5 border-b relative z-10" style={{ borderColor: 'var(--sidebar-border)' }}>
@@ -220,9 +215,9 @@ export default function LeftSidebar() {
                         <p className="text-[10px] -mt-0.5" style={{ color: 'var(--foreground)', opacity: 0.45 }}>Real-time Chat</p>
                     </div>
                     <NotificationBell />
+                    <button onClick={closeSidebars} className="lg:hidden p-1 text-zinc-400 hover:text-white"><X size={18}/></button>
                 </div>
 
-                {/* FIXED: Unified Search Bar UI */}
                 <div className="px-4 pt-4 pb-2 relative z-10">
                     <div className="relative">
                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--foreground)', opacity: 0.5 }} />
