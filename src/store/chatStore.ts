@@ -9,6 +9,7 @@ export interface Message {
     senderName: string;
     content: string;
     timestamp: number;
+    isDeleted?: boolean;
 }
 
 export interface UserPresence {
@@ -43,18 +44,21 @@ interface ChatState {
 
     setMessages: (roomId: string, messages: Message[]) => void;
     appendMessage: (roomId: string, message: Message) => void;
-    clearMessages: (roomId: string) => void; // NEW
-    deleteMessage: (roomId: string, messageId: string) => void; // NEW
+    clearMessages: (roomId: string) => void;
+    deleteMessage: (roomId: string, messageId: string) => void;
 
     setOnlineUsers: (roomId: string, users: UserPresence[]) => void;
     setTypingUsers: (roomId: string, users: string[]) => void;
 }
 
+/** Helper to format DM room names based on the current user's perspective */
 const formatRoom = (room: Room, currentUserId?: string | number): Room => {
     if (room.type === 'DIRECT' && currentUserId && room.participants) {
         const partner = room.participants.find(p => String(p.id) !== String(currentUserId));
         const partnerName = partner ? partner.username : room.dmPartner || 'Unknown User';
-        const partnerDisplayId = partner?.displayId || null;
+
+        // FIX: Fallback to undefined instead of null to satisfy TypeScript's strict optional typing
+        const partnerDisplayId = partner?.displayId || undefined;
 
         return {
             ...room,
@@ -103,18 +107,19 @@ export const useChatStore = create<ChatState>()(
                 return { messages: { ...state.messages, [roomId]: [...existing, message] } };
             }),
 
-            // NEW: Instantly wipe messages for a room
             clearMessages: (roomId) => set((state) => ({
                 messages: { ...state.messages, [roomId]: [] }
             })),
 
-            // NEW: Instantly remove a specific message
             deleteMessage: (roomId, messageId) => set((state) => {
                 const existing = state.messages[roomId] || [];
                 return {
                     messages: {
                         ...state.messages,
-                        [roomId]: existing.map(m => m.id === messageId ? { ...m, content: '', isDeleted: true } : m)
+                        // Soft delete execution: Wipes content and flags as deleted for UI rendering
+                        [roomId]: existing.map(m =>
+                            m.id === messageId ? { ...m, content: '', isDeleted: true } : m
+                        )
                     }
                 };
             }),

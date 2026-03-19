@@ -1,48 +1,39 @@
 import axios from "axios";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore } from "../store/authStore";
 
+/**
+ * ARCHITECTURE NOTE: Axios Gateway
+ * Centralizes all REST API calls.
+ * baseURL dynamically switches based on the environment (local dev vs. Vercel prod).
+ */
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 });
 
-// Existing Request Interceptor
+// Request Interceptor: Attach JWT to every outbound request
 api.interceptors.request.use((config) => {
-  let token = localStorage.getItem("token");
-
-  // Fallback if token is stored inside zustand persist object
-  if (!token) {
-    const authStorage = localStorage.getItem('auth-storage');
-    if (authStorage) {
-      try {
-        const parsed = JSON.parse(authStorage);
-        token = parsed?.state?.token;
-      } catch (e) {
-        console.error("Could not parse auth-storage", e);
-      }
-    }
-  }
+  // Read directly from Zustand's memory state instead of parsing localStorage.
+  const token = useAuthStore.getState().token;
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    console.warn("Axios request without auth token!");
   }
 
   return config;
 });
 
-// ADD THIS: Response Interceptor for Global Error Handling
+// Response Interceptor: Global Error Boundary
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-      // Check if the backend rejected the token
+      // Intercept HTTP 401 (Unauthorized) or 403 (Forbidden)
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        console.warn("Session expired or unauthorized. Logging out...");
+        console.warn("SECURITY: Session expired or token invalidated. Purging state.");
 
-        // Clear the Zustand store and local storage
+        // Wipe the local state and storage
         useAuthStore.getState().logout();
 
-        // Force redirect to login page if on the client side
+        // Force a hard redirect to the login page to clear any residual React state
         if (typeof window !== "undefined") {
           window.location.href = "/login";
         }

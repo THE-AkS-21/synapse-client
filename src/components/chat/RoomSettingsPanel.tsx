@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose }: Props) {
-    const { setRooms, rooms, setActiveRoom } = useChatStore();
+    const { setRooms, rooms, setActiveRoom, clearMessages } = useChatStore();
     const [isDeleting, setIsDeleting] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
@@ -25,8 +25,6 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
     const panelRef = useRef<HTMLDivElement>(null);
 
     const isDM = room.type === 'DIRECT';
-
-    // CRITICAL FIX: Prioritize dmPartnerDisplayId for Direct Messages
     const displayId = isDM ? (room.dmPartnerDisplayId || "ID missing, refresh required") : room.id;
     const displayName = isDM ? `@${room.dmPartner}` : room.name;
 
@@ -56,8 +54,12 @@ export default function RoomSettingsPanel({ room, isCreator, isPrivate, onClose 
     const handleClearMessages = async () => {
         setIsClearing(true);
         try {
-            await api.delete(`/api/v1/rooms/${room.id}/messages`);
-            useChatStore.getState().setMessages(room.id, []);
+            // CRITICAL FIX: Point to the new MessageController endpoint
+            await api.delete(`/api/v1/messages/room/${room.id}`);
+
+            // Optimistically clear our own state
+            clearMessages(room.id);
+
             toast.success('All messages cleared.');
             onClose();
         } catch (err: any) {

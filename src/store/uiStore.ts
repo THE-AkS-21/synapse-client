@@ -11,13 +11,19 @@ interface UiState {
 export const useUiStore = create<UiState>((set) => ({
     isLeftSidebarOpen: false,
     isRightSidebarOpen: false,
+
     toggleLeftSidebar: () => set((state) => ({
         isLeftSidebarOpen: !state.isLeftSidebarOpen,
         isRightSidebarOpen: false
     })),
+
     toggleRightSidebar: () => set((state) => ({
         isRightSidebarOpen: !state.isRightSidebarOpen,
         isLeftSidebarOpen: false
     })),
-    closeSidebars: () => set({ isLeftSidebarOpen: false, isRightSidebarOpen: false }),
+
+    closeSidebars: () => set({
+        isLeftSidebarOpen: false,
+        isRightSidebarOpen: false
+    }),
 }));

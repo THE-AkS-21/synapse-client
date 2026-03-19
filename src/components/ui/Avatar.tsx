@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from './Button';
+import { cn } from '@/lib/utils';
 
 export interface AvatarProps {
     name: string;
@@ -8,7 +8,6 @@ export interface AvatarProps {
     theme?: 'brand' | 'slate' | 'indigo' | 'emerald';
 }
 
-// Map theme → CSS gradient
 const GRADIENTS: Record<string, string> = {
     brand: 'linear-gradient(135deg, var(--brand), var(--brand-hover))',
     slate: 'linear-gradient(135deg, #64748b, #475569)',

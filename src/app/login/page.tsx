@@ -39,6 +39,7 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
     const { setAuth } = useAuthStore();
     const router = useRouter();
 
@@ -46,17 +47,24 @@ export default function LoginPage() {
         e.preventDefault();
         setIsLoading(true);
         setError('');
+
         try {
             const res = await api.post('/api/auth/login', { email, password });
             const { token, username, id } = res.data;
-            setAuth({ id: String(id), username, email }, token);
-            router.push('/dashboard');
-        } catch (err: unknown) {
-            const e = err as { response?: { data?: { message?: string, username?: string } } };
-            const data = e.response?.data;
-            const backendError = data?.message || data?.username;
 
-            setError(backendError || 'Failed to login. Please check your credentials.');
+            // 1. Commit state to Zustand (which syncs to LocalStorage)
+            setAuth({ id: String(id), username, email }, token);
+
+            // 2. Yield the main thread briefly to guarantee storage flush completes
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            // 3. Navigate
+            router.push('/dashboard');
+
+        } catch (err: any) {
+            const data = err.response?.data;
+            const backendError = data?.message || data?.username || 'Failed to login. Please check your credentials.';
+            setError(backendError);
         } finally {
             setIsLoading(false);
         }
@@ -157,7 +165,7 @@ export default function LoginPage() {
                         <p className="text-xs text-foreground/50 mt-1">Real-time Chat Platform</p>
                     </div>
 
-                    <div className="glass rounded-3xl p-8 shadow-2xl">
+                    <div className="glass rounded-3xl p-8 shadow-2xl border border-border/50">
                         <div className="mb-7">
                             <h1 className="text-2xl font-heading font-bold text-foreground mb-1.5">Welcome back</h1>
                             <p className="text-sm text-foreground/60">Sign in to pick up where you left off</p>
@@ -200,6 +208,7 @@ export default function LoginPage() {
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
+                                        aria-label={showPassword ? "Hide password" : "Show password"}
                                         className="absolute inset-y-0 right-0 pr-4 flex items-center text-foreground/40 hover:text-foreground transition-colors"
                                     >
                                         {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}

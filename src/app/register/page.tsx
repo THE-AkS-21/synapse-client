@@ -24,6 +24,7 @@ export default function RegisterPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
     const { setAuth } = useAuthStore();
     const router = useRouter();
 
@@ -31,24 +32,31 @@ export default function RegisterPage() {
         e.preventDefault();
         setIsLoading(true);
         setError('');
+
         try {
             const res = await api.post('/api/auth/register', { username, email, password });
+
             if (res.data?.token && res.data?.username) {
                 const { token, username: uname, id } = res.data;
-                setAuth({ id: String(id), username, email }, token);
+
+                // Commit state and yield thread to ensure persistence
+                setAuth({ id: String(id), username: uname, email }, token);
+                await new Promise(resolve => setTimeout(resolve, 50));
+
                 router.push('/dashboard');
             } else {
                 router.push('/login?registered=1');
             }
-        } catch (err: unknown) {
-            const e = err as { response?: { data?: { message?: string } | string } };
-            const raw = e.response?.data;
+        } catch (err: any) {
+            const raw = err.response?.data;
             const msg = typeof raw === 'object' && raw !== null
-                ? (raw as { message?: string }).message
+                ? raw.message
                 : typeof raw === 'string' ? raw : null;
+
             const errorMsg = msg || 'Registration failed. Please try again.';
             setError(errorMsg);
-            if ((err as { response?: { status?: number } }).response?.status === 409) {
+
+            if (err.response?.status === 409) {
                 toast.error(`⚠️ ${errorMsg}`, { duration: 5000 });
             }
         } finally {
@@ -143,7 +151,7 @@ export default function RegisterPage() {
                         <p className="text-xs text-foreground/50 mt-1">Real-time Chat Platform</p>
                     </div>
 
-                    <div className="glass rounded-3xl p-8 shadow-2xl">
+                    <div className="glass rounded-3xl p-8 shadow-2xl border border-border/50">
                         <div className="mb-7">
                             <h1 className="text-2xl font-heading font-bold text-foreground mb-1.5">Create your account</h1>
                             <p className="text-sm text-foreground/60">Free, instant, and takes under a minute</p>

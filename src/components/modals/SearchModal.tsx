@@ -35,46 +35,60 @@ export default function SearchModal({ isOpen, onClose }: Props) {
 
     useEffect(() => {
 
-        const query = searchQuery.trim();
-
-        if (query.length < 2) {
+        setIsLoading(true);
+        const delay = setTimeout(() => {
+            UserService.searchUsers(searchQuery)
+                .then(data => {
+                    setUserResults(data.filter((u: any) => u.username !== currentUser?.username));
+                })
+                .catch(console.error)
+                .finally(() => setIsLoading(false));
+        }, 300);if (searchQuery.trim().length < 2) {
             setUserResults([]);
             return;
         }
-
-        setIsLoading(true);
-
-        const delay = setTimeout(async () => {
-            try {
-                let results = [];
-
-                // 🔥 If query looks like ID → search by ID
-                const isIdSearch = /^\d+$/.test(query) || query.includes('-');
-
-                if (isIdSearch) {
-                    try {
-                        const user = await UserService.getUserById(query);
-                        if (user && user.username !== currentUser?.username) {
-                            results = [user];
-                        }
-                    } catch {
-                        results = [];
-                    }
-                } else {
-                    // 🔥 Normal username search
-                    const data = await UserService.searchUsers(query);
-                    results = data.filter((u: any) => u.username !== currentUser?.username);
-                }
-
-                setUserResults(results);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setIsLoading(false);
-            }
-        }, 300);
-
         return () => clearTimeout(delay);
+
+        // const query = searchQuery.trim();
+        //
+        // if (query.length < 2) {
+        //     setUserResults([]);
+        //     return;
+        // }
+        //
+        // setIsLoading(true);
+        //
+        // const delay = setTimeout(async () => {
+        //     try {
+        //         let results = [];
+        //
+        //         // 🔥 If query looks like ID → search by ID
+        //         const isIdSearch = /^\d+$/.test(query) || query.includes('-');
+        //
+        //         if (isIdSearch) {
+        //             try {
+        //                 const user = await UserService.getUserById(query);
+        //                 if (user && user.username !== currentUser?.username) {
+        //                     results = [user];
+        //                 }
+        //             } catch {
+        //                 results = [];
+        //             }
+        //         } else {
+        //             // 🔥 Normal username search
+        //             const data = await UserService.searchUsers(query);
+        //             results = data.filter((u: any) => u.username !== currentUser?.username);
+        //         }
+        //
+        //         setUserResults(results);
+        //     } catch (err) {
+        //         console.error(err);
+        //     } finally {
+        //         setIsLoading(false);
+        //     }
+        // }, 300);
+        //
+        // return () => clearTimeout(delay);
     }, [searchQuery, currentUser?.username]);
 
     const handleStartDM = async (partnerId: string, partnerUsername: string) => {

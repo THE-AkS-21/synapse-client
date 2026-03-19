@@ -11,21 +11,22 @@ import { useEffect, useState, useMemo } from "react";
 import Link from 'next/link';
 
 export default function RightSidebar() {
-    // CRITICAL: We now subscribe to the global refreshKey
     const { activeRoomId, onlineUsers, rooms, addRoom, setActiveRoom, refreshKey } = useChatStore();
     const currentUser = useAuthStore(state => state.user);
     const { closeSidebars } = useUiStore();
 
-    const currentOnlineUsers = useMemo(() =>
-            activeRoomId ? (onlineUsers[activeRoomId] || []) : [],
-        [activeRoomId, onlineUsers]);
-
-    const room = rooms.find(r => r.id === activeRoomId);
     const [allMembers, setAllMembers] = useState<any[]>([]);
 
+    const room = rooms.find(r => r.id === activeRoomId);
     const isCreator = room?.creatorId === Number(currentUser?.id);
 
-    // This re-runs whenever the user swaps rooms OR a WebSocket system message increments refreshKey
+    // PERFORMANCE & BUG FIX: Convert array to a Set for O(1) lookups.
+    // We lowercase the identifiers to ensure case-insensitive matching.
+    const onlinePresenceSet = useMemo(() => {
+        const users = activeRoomId ? (onlineUsers[activeRoomId] || []) : [];
+        return new Set(users.map(u => String(u.id || u.username).toLowerCase()));
+    }, [activeRoomId, onlineUsers]);
+
     useEffect(() => {
         if (!activeRoomId) {
             setAllMembers([]);
@@ -33,11 +34,8 @@ export default function RightSidebar() {
         }
 
         RoomService.getRoomParticipants(activeRoomId)
-            .then(data => setAllMembers(data))
-            .catch(() => {
-                toast.error("Could not load room members.");
-                setAllMembers([]);
-            });
+            .then(setAllMembers)
+            .catch(() => toast.error("Could not load room members."));
     }, [activeRoomId, refreshKey]);
 
     const handleRemoveMember = async (userId: string, username: string) => {
@@ -76,13 +74,12 @@ export default function RightSidebar() {
 
     return (
         <aside className="w-72 sm:w-80 lg:w-60 flex flex-col h-full flex-shrink-0 relative overflow-hidden border-l bg-sidebar-bg border-sidebar-border">
-
             <div className="h-16 flex flex-shrink-0 items-center justify-between px-5 border-b border-sidebar-border bg-surface relative z-10">
                 <h3 className="font-heading font-semibold text-sm text-foreground">Room Members</h3>
                 <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1.5 text-xs font-medium text-brand bg-brand-light px-2 py-0.5 rounded-full border border-border">
                         <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-brand" />
-                        {currentOnlineUsers.length}
+                        {onlinePresenceSet.size}
                     </span>
                     <button onClick={closeSidebars} className="lg:hidden p-1 text-foreground/50 hover:text-foreground transition-colors"><X size={18}/></button>
                 </div>
@@ -94,11 +91,12 @@ export default function RightSidebar() {
                         const isMe = u.username === currentUser?.username;
                         const isAdmin = room?.creatorId === Number(u.id);
 
-                        const isOnline = isMe || currentOnlineUsers.some(ou =>
-                            String(ou.id) === String(u.id) ||
-                            ou.username === u.username ||
-                            ou.username === u.email
-                        );
+                        // CRITICAL FIX: The backend STOMP principal is the user's email.
+                        // We must check if the Set contains their email, username, or ID.
+                        const isOnline = isMe ||
+                            onlinePresenceSet.has(String(u.id).toLowerCase()) ||
+                            onlinePresenceSet.has(String(u.username).toLowerCase()) ||
+                            (u.email && onlinePresenceSet.has(String(u.email).toLowerCase()));
 
                         return (
                             <motion.li variants={itemVariants} key={u.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl group hover:bg-surface-hover transition-all duration-150">

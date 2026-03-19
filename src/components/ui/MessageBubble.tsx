@@ -3,6 +3,7 @@ import { format, isToday } from 'date-fns';
 import { Avatar } from './Avatar';
 import { Message } from '@/store/chatStore';
 import { motion } from 'framer-motion';
+import { Ban } from 'lucide-react';
 
 interface MessageBubbleProps {
     msg: Message;
@@ -18,25 +19,19 @@ const formatMessageTime = (timestamp: number) => {
 };
 
 export const MessageBubble = memo(({ msg, isMe, isConsecutive, isLast }: MessageBubbleProps) => {
-    // Only show avatars for OTHER users, at the bottom of their message group
     const showAvatar = isLast && !isMe;
 
-    // Dynamic border radius for the "hugging" effect on consecutive messages
-    const getBubbleStyles = () => {
+    const getBubbleRounding = () => {
         if (isMe) {
-            return `px-4 py-2.5 text-white shadow-md ${
-                !isConsecutive && !isLast ? 'rounded-2xl rounded-br-sm' :
-                    !isConsecutive ? 'rounded-2xl rounded-br-md' :
-                        !isLast ? 'rounded-l-2xl rounded-r-md' :
-                            'rounded-2xl rounded-tr-md rounded-br-sm'
-            }`;
+            return !isConsecutive && !isLast ? 'rounded-2xl rounded-br-sm' :
+                !isConsecutive ? 'rounded-2xl rounded-br-md' :
+                    !isLast ? 'rounded-l-2xl rounded-r-md' :
+                        'rounded-2xl rounded-tr-md rounded-br-sm';
         } else {
-            return `px-4 py-2.5 border ${
-                !isConsecutive && !isLast ? 'rounded-2xl rounded-bl-sm' :
-                    !isConsecutive ? 'rounded-2xl rounded-bl-md' :
-                        !isLast ? 'rounded-r-2xl rounded-l-md' :
-                            'rounded-2xl rounded-tl-md rounded-bl-sm'
-            }`;
+            return !isConsecutive && !isLast ? 'rounded-2xl rounded-bl-sm' :
+                !isConsecutive ? 'rounded-2xl rounded-bl-md' :
+                    !isLast ? 'rounded-r-2xl rounded-l-md' :
+                        'rounded-2xl rounded-tl-md rounded-bl-sm';
         }
     };
 
@@ -49,7 +44,6 @@ export const MessageBubble = memo(({ msg, isMe, isConsecutive, isLast }: Message
         >
             <div className={`flex max-w-[75%] gap-2.5 items-end ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
 
-                {/* Avatar spacer for alignment */}
                 {!isMe && (
                     <div className="flex-shrink-0 w-8">
                         {showAvatar && (
@@ -62,30 +56,38 @@ export const MessageBubble = memo(({ msg, isMe, isConsecutive, isLast }: Message
                     </div>
                 )}
 
-                <div className={`flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
-                    {/* Name + timestamp — only on first message of a group */}
+                <div className={`flex flex-col gap-0.5 relative ${isMe ? 'items-end' : 'items-start'}`}>
+
                     {!isConsecutive && (
                         <div className="flex items-baseline gap-2 mb-0.5 px-1">
-                            <span className="text-[13px] font-bold" style={{ color: 'var(--brand)' }}>
+                            <span className="text-[13px] font-bold text-brand">
                                 {isMe ? 'You' : (msg.senderName || msg.senderUsername)}
                             </span>
                             {msg.timestamp && (
-                                <span className="text-[10px] opacity-40 font-mono">
+                                <span className="text-[10px] opacity-40 font-mono text-foreground">
                                     {formatMessageTime(msg.timestamp)}
                                 </span>
                             )}
                         </div>
                     )}
 
-                    {/* Unified Bubble rendering */}
                     <div
-                        className={getBubbleStyles()}
-                        style={isMe
-                            ? { background: 'linear-gradient(135deg, var(--brand), var(--brand-hover))' }
-                            : { background: 'var(--surface-elevated)', borderColor: 'var(--border)', color: 'var(--foreground)' }
-                        }
+                        className={`px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${getBubbleRounding()} 
+                        ${msg.isDeleted
+                            ? 'bg-surface border border-border text-foreground/50 italic flex items-center gap-2'
+                            : isMe
+                                ? 'bg-gradient-to-br from-brand to-brand-hover text-white shadow-md'
+                                : 'bg-surface-elevated border border-border text-foreground'
+                        }`}
                     >
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                        {msg.isDeleted ? (
+                            <>
+                                <Ban size={14} className="opacity-50" />
+                                This message was deleted
+                            </>
+                        ) : (
+                            msg.content
+                        )}
                     </div>
                 </div>
             </div>
