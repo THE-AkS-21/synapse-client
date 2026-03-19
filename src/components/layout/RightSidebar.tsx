@@ -11,7 +11,8 @@ import { useEffect, useState, useMemo } from "react";
 import Link from 'next/link';
 
 export default function RightSidebar() {
-    const { activeRoomId, onlineUsers, rooms, addRoom, setActiveRoom } = useChatStore();
+    // CRITICAL: We now subscribe to the global refreshKey
+    const { activeRoomId, onlineUsers, rooms, addRoom, setActiveRoom, refreshKey } = useChatStore();
     const currentUser = useAuthStore(state => state.user);
     const { closeSidebars } = useUiStore();
 
@@ -24,6 +25,7 @@ export default function RightSidebar() {
 
     const isCreator = room?.creatorId === Number(currentUser?.id);
 
+    // This re-runs whenever the user swaps rooms OR a WebSocket system message increments refreshKey
     useEffect(() => {
         if (!activeRoomId) {
             setAllMembers([]);
@@ -36,7 +38,7 @@ export default function RightSidebar() {
                 toast.error("Could not load room members.");
                 setAllMembers([]);
             });
-    }, [activeRoomId]);
+    }, [activeRoomId, refreshKey]);
 
     const handleRemoveMember = async (userId: string, username: string) => {
         if (!activeRoomId || !confirm(`Remove @${username} from this room?`)) return;
@@ -132,7 +134,6 @@ export default function RightSidebar() {
                 </motion.ul>
             </div>
 
-            {/* About Page Link */}
             <div className="p-4 border-t border-sidebar-border bg-surface flex justify-center flex-shrink-0">
                 <Link href="/about" className="flex items-center gap-1.5 text-xs font-medium text-foreground/50 hover:text-brand transition-colors px-3 py-1.5 rounded-lg hover:bg-surface-hover">
                     <Info size={13} /> About Synapse

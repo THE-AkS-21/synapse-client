@@ -29,14 +29,14 @@ const stopHeartbeat = () => {
 type PresenceEvent = { onlineUsers: string[], typingUsers: string[] };
 
 export const connectWebSocket = (
-    roomId: string,
+    roomId: string | null, // NOW ALLOWS NULL
     token: string,
     onMessageReceived: (msg: Message) => void,
     onPresenceReceived: (presence: PresenceEvent) => void,
     onGlobalEventReceived: (event: any) => void
 ) => {
     if (stompClient?.connected) {
-        changeRoomSubscription(roomId, onMessageReceived, onPresenceReceived);
+        if (roomId) changeRoomSubscription(roomId, onMessageReceived, onPresenceReceived);
         return;
     }
 
@@ -49,11 +49,12 @@ export const connectWebSocket = (
     });
 
     stompClient.onConnect = () => {
+        // ALWAYS subscribe globally upon connection
         globalSubscription = stompClient!.subscribe('/topic/global-events', (msg: IMessage) => {
             if (msg.body) onGlobalEventReceived(JSON.parse(msg.body));
         });
 
-        changeRoomSubscription(roomId, onMessageReceived, onPresenceReceived);
+        if (roomId) changeRoomSubscription(roomId, onMessageReceived, onPresenceReceived);
         startHeartbeat();
     };
 
@@ -85,22 +86,24 @@ const changeRoomSubscription = (
     stompClient?.publish({ destination: `/app/presence/join/${newRoomId}`, body: JSON.stringify({}) });
 };
 
-export const disconnectWebSocket = (roomId: string) => {
-    if (currentRoomId === roomId) {
+export const disconnectWebSocket = (roomId: string | null) => {
+    if (roomId && currentRoomId === roomId) {
         currentChatSubscription?.unsubscribe();
         currentPresenceSubscription?.unsubscribe();
-        globalSubscription?.unsubscribe();
-
         if (stompClient?.connected) {
             stompClient.publish({ destination: `/app/presence/leave/${roomId}`, body: JSON.stringify({}) });
         }
-
         currentRoomId = null;
     }
 };
 
+export const disconnectGlobalWebSocket = () => {
+    globalSubscription?.unsubscribe();
+    stompClient?.deactivate();
+    stompClient = null;
+}
+
 export const sendMessage = (roomId: string, content: string) => {
-    // Generate the hybrid client-side timestamp
     const timestamp = Date.now();
     stompClient?.publish({
         destination: `/app/room/${roomId}`,

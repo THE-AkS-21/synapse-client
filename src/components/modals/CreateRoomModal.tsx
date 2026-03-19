@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { X, Hash, Lock, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { createPortal } from 'react-dom';
 
 interface Props {
     isOpen: boolean;
@@ -42,7 +43,7 @@ export default function CreateRoomModal({ isOpen, onClose }: Props) {
         }
     };
 
-    return (
+    const modalContent = (
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
@@ -136,4 +137,6 @@ export default function CreateRoomModal({ isOpen, onClose }: Props) {
             )}
         </AnimatePresence>
     );
+
+    return createPortal(modalContent, document.body);
 }

@@ -52,14 +52,18 @@ export default function LeftSidebar() {
     const chatMessages = useChatStore(state => state.messages);
     const { closeSidebars } = useUiStore();
 
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    // const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    // const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+    // const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [userResults, setUserResults] = useState<any[]>([]);
     const [publicRooms, setPublicRooms] = useState<Room[]>([]);
     const [isLoadingRooms, setIsLoadingRooms] = useState(true);
+
+    const [activeModal, setActiveModal] = useState<
+        'NONE' | 'SEARCH' | 'CREATE' | 'JOIN' | 'PROFILE'
+    >('NONE');
 
     const myRooms = rooms.filter(r => r.type !== 'DIRECT');
     const dmRooms = rooms.filter(r => r.type === 'DIRECT');
@@ -94,9 +98,6 @@ export default function LeftSidebar() {
         if (user?.username) {
             setIsLoadingRooms(true);
             fetchData();
-            // CRITICAL FIX: Removed aggressive HTTP polling.
-            // WebSockets and manual user actions (joining/creating) will handle updates naturally,
-            // preventing the RateLimitFilter 429 Too Many Requests error.
         }
     }, [user, fetchData]);
 
@@ -184,8 +185,8 @@ export default function LeftSidebar() {
                         <div className="flex items-center justify-between px-3 mb-2 text-[10px] font-bold uppercase tracking-widest text-foreground/40">
                             <span>My Channels</span>
                             <div className="flex gap-1">
-                                <button onClick={() => setIsJoinModalOpen(true)} className="p-1 hover:text-brand transition-colors"><Search size={13}/></button>
-                                <button onClick={() => setIsCreateModalOpen(true)} className="p-1 hover:text-brand transition-colors"><Plus size={13}/></button>
+                                <button onClick={() => setActiveModal('JOIN')} className="p-1 hover:text-brand transition-colors"><Search size={13}/></button>
+                                <button onClick={() => setActiveModal('CREATE')} className="p-1 hover:text-brand transition-colors"><Plus size={13}/></button>
                             </div>
                         </div>
                         <div className="space-y-1">
@@ -239,7 +240,7 @@ export default function LeftSidebar() {
 
                 <div className="p-4 border-t border-sidebar-border bg-surface flex-shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer group" onClick={() => setIsProfileModalOpen(true)}>
+                        <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer group" onClick={() => setActiveModal('PROFILE')}>
                             <Avatar name={user?.username || 'U'} />
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-bold truncate text-foreground group-hover:text-brand transition-colors">{user?.username || 'User'}</p>
@@ -257,7 +258,13 @@ export default function LeftSidebar() {
             {/* Global Search Results Panel */}
             <AnimatePresence>
                 {searchQuery.length >= 2 && userResults.length > 0 && (
-                    <PortalWrapper isOpen={true} onClose={() => setSearchQuery('')}>
+                    <PortalWrapper
+                        isOpen={activeModal === 'SEARCH'}
+                        onClose={() => {
+                            setActiveModal('NONE');
+                            setSearchQuery('');
+                        }}
+                    >
                         <div className="p-4 border-b border-border flex justify-between items-center bg-surface-hover">
                             <h3 className="font-bold text-sm text-foreground">People Search</h3>
                             <button onClick={() => setSearchQuery('')} className="p-1 hover:bg-surface-elevated rounded-lg text-foreground/50 hover:text-foreground transition-colors"><X size={16}/></button>
@@ -297,17 +304,30 @@ export default function LeftSidebar() {
                 )}
             </AnimatePresence>
 
-            <PortalWrapper isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)}>
-                <UserProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
-            </PortalWrapper>
+            {/* PROFILE */}
+            {activeModal === 'PROFILE' && (
+                <UserProfileModal
+                    isOpen={true}
+                    onClose={() => setActiveModal('NONE')}
+                />
+            )}
 
-            <PortalWrapper isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)}>
-                <CreateRoomModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
-            </PortalWrapper>
+            {/* CREATE */}
+            {activeModal === 'CREATE' && (
+                <CreateRoomModal
+                    isOpen={true}
+                    onClose={() => setActiveModal('NONE')}
+                />
+            )}
 
-            <PortalWrapper isOpen={isJoinModalOpen} onClose={() => setIsJoinModalOpen(false)}>
-                <JoinRoomModal isOpen={isJoinModalOpen} onClose={() => setIsJoinModalOpen(false)} />
-            </PortalWrapper>
+            {/* JOIN */}
+            {activeModal === 'JOIN' && (
+                <JoinRoomModal
+                    isOpen={true}
+                    onClose={() => setActiveModal('NONE')}
+                />
+            )}
+
         </>
     );
 }

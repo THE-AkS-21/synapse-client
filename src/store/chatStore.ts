@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware'; // Import the persist middleware
+import { persist } from 'zustand/middleware';
 
 export interface Message {
     id: string;
@@ -33,7 +33,9 @@ interface ChatState {
     messages: Record<string, Message[]>;
     onlineUsers: Record<string, UserPresence[]>;
     typingUsers: Record<string, string[]>;
+    refreshKey: number;
 
+    triggerRefresh: () => void;
     removeRoom: (roomId: string) => void;
     setRooms: (rooms: Room[], currentUserId?: string | number) => void;
     addRoom: (room: Room, currentUserId?: string | number) => void;
@@ -41,6 +43,8 @@ interface ChatState {
 
     setMessages: (roomId: string, messages: Message[]) => void;
     appendMessage: (roomId: string, message: Message) => void;
+    clearMessages: (roomId: string) => void; // NEW
+    deleteMessage: (roomId: string, messageId: string) => void; // NEW
 
     setOnlineUsers: (roomId: string, users: UserPresence[]) => void;
     setTypingUsers: (roomId: string, users: string[]) => void;
@@ -62,7 +66,6 @@ const formatRoom = (room: Room, currentUserId?: string | number): Room => {
     return room;
 };
 
-// Wrap the store in the persist middleware
 export const useChatStore = create<ChatState>()(
     persist(
         (set) => ({
@@ -71,6 +74,9 @@ export const useChatStore = create<ChatState>()(
             messages: {},
             onlineUsers: {},
             typingUsers: {},
+            refreshKey: 0,
+
+            triggerRefresh: () => set((state) => ({ refreshKey: state.refreshKey + 1 })),
 
             setRooms: (rooms, currentUserId) => set({
                 rooms: rooms.map(r => formatRoom(r, currentUserId))
@@ -97,6 +103,22 @@ export const useChatStore = create<ChatState>()(
                 return { messages: { ...state.messages, [roomId]: [...existing, message] } };
             }),
 
+            // NEW: Instantly wipe messages for a room
+            clearMessages: (roomId) => set((state) => ({
+                messages: { ...state.messages, [roomId]: [] }
+            })),
+
+            // NEW: Instantly remove a specific message
+            deleteMessage: (roomId, messageId) => set((state) => {
+                const existing = state.messages[roomId] || [];
+                return {
+                    messages: {
+                        ...state.messages,
+                        [roomId]: existing.map(m => m.id === messageId ? { ...m, content: '', isDeleted: true } : m)
+                    }
+                };
+            }),
+
             setOnlineUsers: (roomId, users) => set((state) => ({
                 onlineUsers: { ...state.onlineUsers, [roomId]: users }
             })),
@@ -106,8 +128,7 @@ export const useChatStore = create<ChatState>()(
             })),
         }),
         {
-            name: 'chat-storage', // Key used in localStorage
-            // CRITICAL: Only persist the activeRoomId. Do NOT persist messages or online users to save memory.
+            name: 'chat-storage',
             partialize: (state) => ({ activeRoomId: state.activeRoomId }),
         }
     )
