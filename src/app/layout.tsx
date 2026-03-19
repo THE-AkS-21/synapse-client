@@ -8,40 +8,38 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 
 export const metadata: Metadata = {
-  title: 'Synapse | Enterprise Chat',
-  description: 'Highly responsive, modern chat application',
+    title: 'Synapse | Enterprise Chat',
+    description: 'Highly responsive, modern real-time chat application',
 };
 
-// src/app/layout.tsx
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
+    return (
+        <html lang="en" suppressHydrationWarning>
+        <body
+            suppressHydrationWarning
+            className={`${inter.variable} ${outfit.variable} font-sans antialiased bg-background text-foreground selection:bg-brand/30 transition-colors duration-300`}
+        >
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+            {children}
 
-export default function RootLayout({
-                                     children,
-                                   }: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-      <html lang="en" suppressHydrationWarning>
-      {/* Add suppressHydrationWarning right here on the body tag */}
-      <body
-          suppressHydrationWarning
-          className={`${inter.variable} ${outfit.variable} font-sans antialiased bg-white dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 selection:bg-indigo-500/30 transition-colors duration-300`}
-      >
-      <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-      >
-        {children}
-        <Toaster position="top-right" toastOptions={{
-          style: {
-            background: 'var(--toast-bg, #18181b)',
-            color: 'var(--toast-color, #fff)',
-            border: '1px solid var(--toast-border, rgba(255,255,255,0.1))'
-          }
-        }} />
-      </ThemeProvider>
-      </body>
-      </html>
-  );
+            {/* Dynamic Toaster Styling based on CSS variables */}
+            <Toaster
+                position="top-right"
+                toastOptions={{
+                    style: {
+                        background: 'var(--surface-elevated)',
+                        color: 'var(--foreground)',
+                        border: '1px solid var(--border)'
+                    }
+                }}
+            />
+        </ThemeProvider>
+        </body>
+        </html>
+    );
 }

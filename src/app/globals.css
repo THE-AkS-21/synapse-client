@@ -1,42 +1,81 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------ */
+/* DESIGN TOKENS (Tailwind Theme Bridge) */
+/* ------------------------------------------------ */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
   --color-brand-light: var(--brand-light);
+
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
   --color-surface-elevated: var(--surface-elevated);
+
   --color-border: var(--border);
   --color-border-hover: var(--border-hover);
+
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-border: var(--sidebar-border);
+
   --font-sans: var(--font-inter), sans-serif;
   --font-heading: var(--font-outfit), sans-serif;
 }
 
-/* ─── Light Mode ─── */
+/* ------------------------------------------------ */
+/* GLOBAL MOTION TOKENS */
+/* ------------------------------------------------ */
+
 :root {
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ------------------------------------------------ */
+/* LIGHT THEME */
+/* ------------------------------------------------ */
+
+:root {
+  color-scheme: light;
+
+  /* Base */
   --background: #f0f4f1;
   --foreground: #111b14;
 
+  /* Brand */
   --brand: #16a34a;
   --brand-hover: #15803d;
   --brand-light: #dcfce7;
 
+  /* Surfaces */
   --surface: #ffffff;
   --surface-hover: #e2ece4;
   --surface-elevated: #eaf2ec;
 
+  /* Borders */
   --border: #cad7cc;
   --border-hover: #94b09a;
 
+  /* Sidebar */
   --sidebar-bg: #e8f0ea;
   --sidebar-border: #cad7cc;
+
+  /* Toast */
+  --toast-bg: var(--surface-elevated);
+  --toast-color: var(--foreground);
 }
 
-/* ─── Dark Mode (neutral dark grey — no green tint) ─── */
+/* ------------------------------------------------ */
+/* DARK THEME */
+/* ------------------------------------------------ */
+
 .dark {
+  color-scheme: dark;
+
   --background: #1c1c1e;
   --foreground: #e8f5eb;
 
@@ -55,18 +94,29 @@
   --sidebar-border: rgba(74, 222, 128, 0.08);
 }
 
-/* ─── Glassmorphism ─── */
+/* ------------------------------------------------ */
+/* UTILITIES */
+/* ------------------------------------------------ */
+
 @utility glass {
   background: var(--surface);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
   border: 1px solid var(--border);
+
+  box-shadow:
+          0 8px 24px rgba(0,0,0,0.12),
+          inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
-/* ─── Scrollbar ─── */
+/* ------------------------------------------------ */
+/* SCROLLBAR */
+/* ------------------------------------------------ */
+
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -74,49 +124,112 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(74, 222, 128, 0.2);
-  border-radius: 10px;
+  background: rgba(74, 222, 128, 0.25);
+  border-radius: 999px;
+  transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.45);
 }
 
-/* ─── Base ─── */
+/* Dark mode scrollbar adjustment */
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.28);
+}
+
+/* ------------------------------------------------ */
+/* BASE LAYER */
+/* ------------------------------------------------ */
+
 body {
   background: var(--background);
   color: var(--foreground);
+
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+
   min-height: 100vh;
   margin: 0;
+
   display: flex;
   flex-direction: column;
+
+  font-family: var(--font-sans);
+
+  transition:
+          background-color 200ms var(--ease-smooth),
+          color 200ms var(--ease-smooth);
 }
 
-/* ─── Animated gradient bg for login/register ─── */
+/* ------------------------------------------------ */
+/* ACCESSIBILITY */
+/* ------------------------------------------------ */
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------ */
+/* ANIMATED AUTH BACKGROUND */
+/* ------------------------------------------------ */
+
 .animated-bg {
-  background: linear-gradient(-45deg, #111113, #1a1a1e, #181820, #111113);
+  background: linear-gradient(
+          -45deg,
+          #111113,
+          #1a1a1e,
+          #181820,
+          #111113
+  );
+
   background-size: 400% 400%;
-  animation: gradientBG 15s ease infinite;
+
+  animation: gradientBG 16s ease infinite;
+}
+
+.dark .animated-bg {
+  background: linear-gradient(
+          -45deg,
+          #0f1115,
+          #14171c,
+          #0d1a13,
+          #0f1115
+  );
+
+  background-size: 400% 400%;
 }
 
 @keyframes gradientBG {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-/* ─── Online pill ─── */
+/* ------------------------------------------------ */
+/* STATUS BADGES */
+/* ------------------------------------------------ */
+
 .pill-online {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 2px 8px;
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 500;
+
   background: rgba(74, 222, 128, 0.12);
   color: #4ade80;
+
   border: 1px solid rgba(74, 222, 128, 0.25);
+
+  backdrop-filter: blur(4px);
 }

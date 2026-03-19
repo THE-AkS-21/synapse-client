@@ -1,5 +1,5 @@
 import { InputHTMLAttributes, forwardRef } from 'react';
-import { cn } from './Button'; // reuse cn utility
+import { cn } from '@/lib/utils';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     icon?: React.ReactNode;
@@ -8,17 +8,17 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 const Input = forwardRef<HTMLInputElement, InputProps>(
     ({ className, type, icon, ...props }, ref) => {
         return (
-            <div className="relative w-full">
+            <div className="relative w-full group">
                 {icon && (
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground/40 transition-colors group-focus-within:text-brand">
                         {icon}
                     </div>
                 )}
                 <input
                     type={type}
                     className={cn(
-                        'flex h-12 w-full rounded-xl border border-border bg-background/50 px-4 py-2 text-sm text-foreground placeholder:text-zinc-500 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 glass',
-                        icon && 'pl-10',
+                        'glass flex h-12 w-full rounded-xl px-4 py-2 text-sm text-foreground placeholder:text-foreground/40 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:border-brand disabled:cursor-not-allowed disabled:opacity-50',
+                        icon && 'pl-11',
                         className
                     )}
                     ref={ref}

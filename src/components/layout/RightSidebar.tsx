@@ -2,179 +2,127 @@
 
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
+import { useUiStore } from '@/store/uiStore';
+import { RoomService } from '@/services/room.service';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { Info, UserMinus, MessageCircle, Shield } from 'lucide-react';
-import { api } from '@/services/api';
+import { UserMinus, MessageCircle, Shield, X, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import Link from 'next/link';
 
 export default function RightSidebar() {
-    const { activeRoomId, onlineUsers, rooms, addRoom, setActiveRoom } = useChatStore();
+    const { activeRoomId, onlineUsers, rooms, addRoom, setActiveRoom, refreshKey } = useChatStore();
     const currentUser = useAuthStore(state => state.user);
-    const currentOnlineUsers = activeRoomId ? (onlineUsers[activeRoomId] || []) : [];
-    const room = rooms.find(r => r.id === activeRoomId);
+    const { closeSidebars } = useUiStore();
+
     const [allMembers, setAllMembers] = useState<any[]>([]);
 
+    const room = rooms.find(r => r.id === activeRoomId);
     const isCreator = room?.creatorId === Number(currentUser?.id);
 
+    // PERFORMANCE & BUG FIX: Convert array to a Set for O(1) lookups.
+    // We lowercase the identifiers to ensure case-insensitive matching.
+    const onlinePresenceSet = useMemo(() => {
+        const users = activeRoomId ? (onlineUsers[activeRoomId] || []) : [];
+        return new Set(users.map(u => String(u.id || u.username).toLowerCase()));
+    }, [activeRoomId, onlineUsers]);
+
+    useEffect(() => {
+        if (!activeRoomId) {
+            setAllMembers([]);
+            return;
+        }
+
+        RoomService.getRoomParticipants(activeRoomId)
+            .then(setAllMembers)
+            .catch(() => toast.error("Could not load room members."));
+    }, [activeRoomId, refreshKey]);
+
     const handleRemoveMember = async (userId: string, username: string) => {
-        if (!activeRoomId) return;
-        if (!confirm(`Remove @${username} from this room?`)) return;
+        if (!activeRoomId || !confirm(`Remove @${username} from this room?`)) return;
         try {
-            await api.delete(`/api/v1/rooms/${activeRoomId}/participants/${userId}`);
+            await RoomService.removeParticipant(activeRoomId, userId);
             toast.success(`@${username} removed.`);
-            // Optimistically update the local state
-            setAllMembers(prev => prev.filter(m => m.id !== userId));
+            setAllMembers(prev => prev.filter(m => String(m.id) !== String(userId)));
         } catch {
             toast.error('Failed to remove member.');
         }
     };
 
     const handleStartDM = async (partnerId: string, partnerUsername: string) => {
-        const existing = rooms.find(
-            r => r.type === 'DIRECT' && r.dmPartner === partnerUsername
-        );
+        const existing = rooms.find(r => r.type === 'DIRECT' && r.dmPartner === partnerUsername);
         if (existing) {
             setActiveRoom(existing.id);
+            closeSidebars();
             return;
         }
+
         try {
-            const res = await api.post('/api/v1/rooms/direct', {
-                user1Id: Number(currentUser?.id),
-                user2Id: Number(partnerId),
-            });
-            const newRoom = {
-                ...res.data,
-                type: 'DIRECT' as const,
-                dmPartner: partnerUsername,
-            };
-            addRoom(newRoom);
+            const data = await RoomService.startDirectMessage(Number(currentUser?.id), Number(partnerId));
+            const newRoom = { ...data, type: 'DIRECT' as const, dmPartner: partnerUsername };
+            addRoom(newRoom, currentUser?.id);
             setActiveRoom(newRoom.id);
             toast.success(`DM with @${partnerUsername} opened!`);
+            closeSidebars();
         } catch {
             toast.error('Failed to open DM.');
         }
     };
 
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { staggerChildren: 0.07 } }
-    } as const;
-
-    const itemVariants = {
-        hidden: { opacity: 0, x: 16 },
-        visible: { opacity: 1, x: 0, transition: { type: 'spring' as const, stiffness: 280, damping: 22 } }
-    };
-
-    useEffect(() => {
-        if (!activeRoomId) {
-            setAllMembers([]); // Clear members if no room is active
-            return;
-        }
-
-        api.get(`/api/v1/rooms/${activeRoomId}/participants`)
-            .then(res => setAllMembers(res.data))
-            .catch(error => {
-                console.error("Failed to fetch participants:", error);
-                toast.error("Could not load room members.");
-                setAllMembers([]); // Reset to prevent showing stale data from a previous room
-            });
-    }, [activeRoomId]);
+    const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.05 } } };
+    const itemVariants = { hidden: { opacity: 0, x: 16 }, visible: { opacity: 1, x: 0 } };
 
     return (
-        <aside className="w-60 flex flex-col h-full flex-shrink-0 transition-colors duration-300 relative overflow-hidden border-l"
-               style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--sidebar-border)' }}>
-
-            <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{
-                backgroundImage: 'radial-gradient(circle, rgba(74,222,128,0.9) 1px, transparent 1px)',
-                backgroundSize: '24px 24px',
-            }} />
-            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl pointer-events-none"
-                 style={{ background: 'var(--brand)', opacity: 0.08 }} />
-
-            <div className="h-16 flex items-center justify-between px-5 border-b backdrop-blur-md relative z-10"
-                 style={{ borderColor: 'var(--sidebar-border)', background: 'var(--surface)' }}>
-                <h3 className="font-heading font-semibold text-sm tracking-tight" style={{ color: 'var(--foreground)' }}>
-                    Room Members
-                </h3>
-                <div className="flex items-center gap-1.5">
-                    <span className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--brand)' }}>
-                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--brand)' }} />
-                        {currentOnlineUsers.length} Online
+        <aside className="w-72 sm:w-80 lg:w-60 flex flex-col h-full flex-shrink-0 relative overflow-hidden border-l bg-sidebar-bg border-sidebar-border">
+            <div className="h-16 flex flex-shrink-0 items-center justify-between px-5 border-b border-sidebar-border bg-surface relative z-10">
+                <h3 className="font-heading font-semibold text-sm text-foreground">Room Members</h3>
+                <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5 text-xs font-medium text-brand bg-brand-light px-2 py-0.5 rounded-full border border-border">
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-brand" />
+                        {onlinePresenceSet.size}
                     </span>
+                    <button onClick={closeSidebars} className="lg:hidden p-1 text-foreground/50 hover:text-foreground transition-colors"><X size={18}/></button>
                 </div>
             </div>
 
             <div className="flex-1 overflow-y-auto py-4 px-3 relative z-10">
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-3 px-1"
-                   style={{ color: 'var(--foreground)', opacity: 0.45 }}>
-                    All Members — {allMembers.length}
-                </p>
-
                 <motion.ul variants={containerVariants} initial="hidden" animate="visible" className="space-y-1">
                     {allMembers.map((u) => {
-                        // Check if this specific member is in the active online users array
-                        const isOnline = currentOnlineUsers.some(onlineUser =>
-                            String(onlineUser.id) === String(u.id) || onlineUser.username === u.username
-                        );
-                        const isAdmin = room?.creatorId === Number(u.id);
                         const isMe = u.username === currentUser?.username;
+                        const isAdmin = room?.creatorId === Number(u.id);
+
+                        // CRITICAL FIX: The backend STOMP principal is the user's email.
+                        // We must check if the Set contains their email, username, or ID.
+                        const isOnline = isMe ||
+                            onlinePresenceSet.has(String(u.id).toLowerCase()) ||
+                            onlinePresenceSet.has(String(u.username).toLowerCase()) ||
+                            (u.email && onlinePresenceSet.has(String(u.email).toLowerCase()));
 
                         return (
-                            <motion.li
-                                variants={itemVariants}
-                                key={u.id}
-                                className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl group transition-all duration-150 border border-transparent"
-                                style={{ '--hover-bg': 'var(--surface-hover)' } as React.CSSProperties}
-                                onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-hover)')}
-                                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                            >
+                            <motion.li variants={itemVariants} key={u.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl group hover:bg-surface-hover transition-all duration-150">
                                 <div className="relative shrink-0">
-                                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm ${isOnline ? '' : 'grayscale opacity-60'}`}
-                                         style={{ background: `linear-gradient(135deg, var(--brand), var(--brand-hover))` }}>
+                                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm transition-colors ${isOnline ? 'bg-brand' : 'bg-foreground/20 grayscale opacity-60'}`}>
                                         {u.username.charAt(0).toUpperCase()}
                                     </div>
-                                    {isOnline && (
-                                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 shadow-sm"
-                                             style={{ background: '#4ade80', borderColor: 'var(--sidebar-bg)', boxShadow: '0 0 6px rgba(74,222,128,0.5)' }} />
-                                    )}
+                                    {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface bg-brand shadow-sm" />}
                                 </div>
+
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate transition-colors flex items-center gap-1" style={{ color: 'var(--foreground)' }}>
-                                        {u.username}
-                                        {isAdmin && (
-                                            <span title="Room Admin" className="flex">
-                                                <Shield size={12} className="text-indigo-400" />
-                                            </span>
-                                        )}
+                                    <p className="text-sm font-medium truncate flex items-center gap-1 text-foreground">
+                                        {u.username} {isAdmin && <Shield size={12} className="text-brand" />}
                                     </p>
-                                    <p className="text-[11px] font-medium" style={{ color: isOnline ? '#4ade80' : 'var(--zinc-500)' }}>
+                                    <p className={`text-[11px] font-medium ${isOnline ? 'text-brand' : 'text-foreground/50'}`}>
                                         {isOnline ? 'Online' : 'Offline'}
                                     </p>
                                 </div>
 
-                                {/* DM button — for other users */}
                                 {!isMe && (
-                                    <button
-                                        onClick={() => handleStartDM(u.id, u.username)}
-                                        className="p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100"
-                                        style={{ color: 'var(--brand)' }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--brand-light)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                                        title={`Send DM to @${u.username}`}
-                                    >
+                                    <button onClick={() => handleStartDM(u.id, u.username)} className="p-1.5 rounded-md text-brand hover:bg-brand/10 opacity-0 group-hover:opacity-100 transition-all">
                                         <MessageCircle size={13} />
                                     </button>
                                 )}
-
-                                {/* Remove member — creator only, not for self */}
                                 {isCreator && !isMe && (
-                                    <button
-                                        onClick={() => handleRemoveMember(u.id, u.username)}
-                                        className="p-1 rounded-md transition-all opacity-0 group-hover:opacity-100 text-red-400 hover:bg-red-400/10 ml-1"
-                                        title={`Remove @${u.username}`}
-                                    >
+                                    <button onClick={() => handleRemoveMember(u.id, u.username)} className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all">
                                         <UserMinus size={13} />
                                     </button>
                                 )}
@@ -184,16 +132,9 @@ export default function RightSidebar() {
                 </motion.ul>
             </div>
 
-            <div className="px-3 py-3 border-t relative z-10" style={{ borderColor: 'var(--sidebar-border)' }}>
-                <Link
-                    href="/about"
-                    className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs transition-all group"
-                    style={{ color: 'var(--foreground)', opacity: 0.5 }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-hover)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.5'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                >
-                    <Info size={13} className="shrink-0" />
-                    <span>About Synapse</span>
+            <div className="p-4 border-t border-sidebar-border bg-surface flex justify-center flex-shrink-0">
+                <Link href="/about" className="flex items-center gap-1.5 text-xs font-medium text-foreground/50 hover:text-brand transition-colors px-3 py-1.5 rounded-lg hover:bg-surface-hover">
+                    <Info size={13} /> About Synapse
                 </Link>
             </div>
         </aside>
